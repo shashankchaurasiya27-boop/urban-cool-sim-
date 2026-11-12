@@ -1,0 +1,128 @@
+UrbanCoolSim Antigravity Environment & Reproducibility Ledger
+=============================================================
+
+1. SYSTEM & PLATFORM
+--------------------
+Operating System: macOS Darwin (Darwin 24.5.0)
+Architecture: arm64 (Apple Silicon)
+Host: Apple Silicon M-series
+Shell: zsh
+
+2. RUNTIME ENVIRONMENTS & TOOLCHAINS
+-----------------------------------
+System Python: Python 3.13.11 (/Users/shashankchaurasia/miniconda3/bin/python3)
+Project Python (Canonical): Python 3.11.16 (/opt/homebrew/bin/python3.11)
+Node.js: v24.20.0 (/opt/homebrew/bin/node)
+npm: 11.19.0 (/opt/homebrew/bin/npm)
+Docker Desktop: Not available in local path (Native virtual environment execution utilized)
+
+3. PYTHON VIRTUAL ENVIRONMENTS
+------------------------------
+A. Backend Environment: .venv-backend (Python 3.11.16)
+   - fastapi: 0.162.0
+   - pydantic: 2.14.1
+   - pydantic-core: 2.50.1
+   - passlib: 1.7.4
+   - bcrypt: 4.1.2
+   - pyjwt: 2.15.1
+   - sqlalchemy: 2.1.6
+   - scipy: 1.17.1
+   - numpy: 2.4.6
+   - scikit-learn: 1.9.1
+   - lightgbm: 4.7.0
+   - shap: 0.51.0
+   - pymoo: 0.6.2
+   - rasterio: 1.4.4
+   - reportlab: 5.1.0
+   - matplotlib: 3.11.2
+   - pytest: 9.1.1
+   - pytest-asyncio: 1.4.0
+
+B. Spatial Tooling Environment: .venv-spatial (Python 3.11.16)
+   - osmnx: 2.1.1
+   - geopandas: 1.2.0
+   - shapely: 2.2.0
+   - pyproj: 3.7.2
+   - requests: 2.34.2
+   - pyogrio: 0.13.0
+   - networkx: 3.6.1
+   - pytest: 9.1.1
+
+C. Frontend Packages (Node 24.20.0 / npm 11.19.0)
+   - next: 14.2.35
+   - react: 18.2.0
+   - react-dom: 18.2.0
+   - @deck.gl/core: 9.3.10
+   - @deck.gl/react: 9.3.10
+   - @deck.gl/layers: 9.3.10
+   - @deck.gl/geo-layers: 9.3.10
+   - @deck.gl/mapbox: 9.3.10
+   - maplibre-gl: 4.1.0
+   - typescript: 5.4.2
+   - tailwindcss: 3.4.1
+   - eslint: 8.57.0
+   - eslint-config-next: 14.2.35
+
+4. COMMANDS EXECUTED & RUNTIMES
+-------------------------------
+1. Backend venv creation:
+   /opt/homebrew/bin/python3.11 -m venv .venv-backend
+   Duration: ~2.1s | Exit Code: 0
+
+2. Backend dependency installation:
+   ./.venv-backend/bin/python -m pip install --upgrade pip
+   ./.venv-backend/bin/python -m pip install -r backend/requirements.txt
+   Duration: ~42s | Exit Code: 0
+
+3. Backend dependency integrity check:
+   ./.venv-backend/bin/python -m pip check
+   Output: "No broken requirements found." | Exit Code: 0
+
+4. Crypto dependency diagnostic:
+   ./.venv-backend/bin/python -c "import bcrypt, passlib, jwt..."
+   Result: bcrypt 4.1.2 & passlib 1.7.4 verified | Exit Code: 0
+
+5. Spatial venv creation:
+   /opt/homebrew/bin/python3.11 -m venv .venv-spatial
+   Duration: ~2.0s | Exit Code: 0
+
+6. Spatial dependency installation:
+   ./.venv-spatial/bin/python -m pip install --upgrade pip
+   ./.venv-spatial/bin/python -m pip install -r dataset/requirements-spatial.txt pytest
+   Duration: ~18s | Exit Code: 0
+
+7. Spatial unit tests:
+   PYTHONPATH=dataset ./.venv-spatial/bin/python -m pytest -q dataset/tests
+   Result: 11 passed in 0.99s | Exit Code: 0
+
+8. Live Overpass vector data acquisition:
+   ./.venv-spatial/bin/python dataset/download_study_area_vectors.py --areas all
+   Duration: ~7m 32s | Exit Code: 0 | Result: 13,880 features across 5 cities
+
+9. Spatial data integrity validator:
+   ./.venv-spatial/bin/python dataset/validate_spatial_data.py
+   Duration: ~3.8s | Exit Code: 0 | Result: 10/10 GeoJSON files PASS (0 invalid)
+
+10. Frontend ESLint verification:
+    npm run lint --prefix frontend
+    Result: 0 errors | Exit Code: 0
+
+11. Frontend TypeScript compilation:
+    ./frontend/node_modules/.bin/tsc --noEmit -p frontend/tsconfig.json
+    Result: 0 errors | Exit Code: 0
+
+12. Frontend Next.js production build:
+    npm run build --prefix frontend
+    Duration: ~8.4s | Exit Code: 0 | Result: 15/15 static pages pre-rendered
+
+13. Complete backend test suite (C2 closure):
+    SECRET_KEY=antigravity-secure-test-key-32chars-min PYTHONPATH=backend ./.venv-backend/bin/python -m pytest -q backend/tests
+    Duration: ~11.77s | Exit Code: 0 | Result: 58 passed, 0 failed
+
+14. GeoJSON export & units contract verification:
+    ./.venv-backend/bin/python scripts/test_geojson_export.py
+    Result: 5/5 study areas PASS; coverage_unit="percent (0-100)" verified
+
+15. Live API smoke checks:
+    ./.venv-backend/bin/python scripts/verify_api_smoke.py
+    Result: Health 200, Live OSM Grid 200, 3D Buildings 200, 422 boundary rejection PASS

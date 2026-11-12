@@ -1,0 +1,7 @@
+requests
+tqdm
+pystac-client
+planetary-computer
+boto3
+cdsapi
+earthaccess

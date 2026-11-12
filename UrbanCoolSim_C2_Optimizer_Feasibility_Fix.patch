@@ -1,0 +1,190 @@
+--- a/backend/app/optimization/pareto_optimizer.py
++++ b/backend/app/optimization/pareto_optimizer.py
+@@ -10,6 +10,7 @@
+ from app.ml.surrogate import SurrogateModelPipeline
+ from app.interventions.engine import InterventionEngine
+ from app.physics.energy_balance import EnergyBalanceSolver
++from app.spatial.geo_digital_twin import STUDY_AREA_CONFIGS
+ 
+ class UrbanCoolingOptimizationProblem(ElementwiseProblem):
+     """
+@@ -27,8 +28,11 @@
+         max_budget_usd: float = 500000.0,
+         max_water_m3: float = 10000.0,
+         max_land_m2: float = 50000.0,
+-        baseline_features: Dict[str, float] = None
++        baseline_features: Optional[Dict[str, float]] = None,
++        study_area_m2: Optional[float] = None
+     ):
++        if study_area_m2 is None or study_area_m2 <= 0:
++            raise ValueError("study_area_m2 must be explicitly provided from the configured study area extent; hardcoded defaults are disabled.")
+         super().__init__(
+             n_var=4,
+             n_obj=3,          # f1: -Delta_T (max cooling), f2: cost ($), f3: water (m³)
+@@ -40,6 +44,7 @@
+         self.max_budget_usd = max_budget_usd
+         self.max_water_m3 = max_water_m3
+         self.max_land_m2 = max_land_m2
++        self.study_area_m2 = float(study_area_m2)
+         self.base_feat = baseline_features or {
+             "baseline_albedo": 0.18,
+             "baseline_veg_frac": 0.12,
+@@ -70,7 +75,10 @@
+         predicted_delta_T = self.surrogate.predict_delta_t(feat)
+         
+         # Resource budget evaluation
+-        resource = InterventionEngine.calculate_resource_budget(feat)
++        bldg_density = self.base_feat.get("building_density", 0.40)
++        resource = InterventionEngine.calculate_resource_budget(
++            feat, study_area_m2=self.study_area_m2, avg_bldg_density=bldg_density
++        )
+         cost = resource["total_cost_usd"]
+         water = resource["water_demand_m3"]
+         land = resource["land_area_m2"]
+@@ -117,7 +125,12 @@
+         "phoenix_downtown": {"air_temp_c": 45.0, "solar_rad": 1020.0, "wind_speed": 2.0, "q_f": 55.0, "base_albedo": 0.16, "veg": 0.05},
+         "tokyo_shinjuku": {"air_temp_c": 35.5, "solar_rad": 860.0, "wind_speed": 2.4, "q_f": 65.0, "base_albedo": 0.16, "veg": 0.08}
+     }
+-    c_info = climates.get(study_area_id, climates["delhi_cp"])
++    if study_area_id not in climates or study_area_id not in STUDY_AREA_CONFIGS:
++        raise ValueError(
++            f"Unsupported study_area_id: '{study_area_id}'. Supported areas are: "
++            f"{list(STUDY_AREA_CONFIGS.keys())}. Unregistered study areas are rejected to prevent silent fallbacks."
++        )
++    c_info = climates[study_area_id]
+     
+     base_feat = {
+         "baseline_albedo": c_info["base_albedo"],
+@@ -132,12 +145,18 @@
+         "wetness_factor": 0.5
+     }
+     
++    sa_config = STUDY_AREA_CONFIGS[study_area_id]
++    total_district_m2 = float(sa_config["analysis_window_area_m2"])
++    bldg_density = float(base_feat.get("building_density", 0.45))
++    bldg_footprint_m2 = round(total_district_m2 * bldg_density, 1)
++
+     problem = UrbanCoolingOptimizationProblem(
+         surrogate=surrogate,
+         max_budget_usd=max_budget_usd,
+         max_water_m3=max_water_m3,
+         max_land_m2=max_land_m2,
+-        baseline_features=base_feat
++        baseline_features=base_feat,
++        study_area_m2=total_district_m2
+     )
+     
+     algorithm = NSGA2(
+@@ -193,9 +212,6 @@
+     w_water = weight_water / total_w
+     w_energy = weight_energy / total_w
+ 
+-    bldg_footprint_m2 = 112500.0  # 45% of 250,000 m2 district
+-    total_district_m2 = 250000.0
+-
+     for idx, vars_opt in enumerate(X_candidates):
+         green_roof, cool_roof, tree_canopy, water_feat = vars_opt[0], vars_opt[1], vars_opt[2], vars_opt[3]
+         
+@@ -208,7 +224,9 @@
+             "water_feature_fraction": water_feat
+         })
+         surrogate_delta_T = surrogate.predict_delta_t(feat)
+-        resource = InterventionEngine.calculate_resource_budget(feat)
++        resource = InterventionEngine.calculate_resource_budget(
++            feat, study_area_m2=total_district_m2, avg_bldg_density=bldg_density
++        )
+         cost = resource["total_cost_usd"]
+         water = resource["water_demand_m3"]
+         
+@@ -243,12 +261,22 @@
+         co2_tons = round(hvac_kwh_saved * 0.00072, 1)        # Grid intensity
+         payback_years = round(cost / max(100.0, elec_savings_usd), 1)
+         
++        # Constraint feasibility evaluation
++        violations = []
++        if cost > max_budget_usd:
++            violations.append(f"Cost (${cost:,.2f}) exceeds max budget (${max_budget_usd:,.2f})")
++        if water > max_water_m3:
++            violations.append(f"Water demand ({water:,.1f} m³) exceeds max limit ({max_water_m3:,.1f} m³)")
++        if land_m2 > max_land_m2:
++            violations.append(f"Land footprint ({land_m2:,.1f} m²) exceeds max allowance ({max_land_m2:,.1f} m²)")
++        is_feasible = (len(violations) == 0)
++
+         # Multi-attribute composite score (0-100)
+         norm_cooling = min(1.0, physics_validated_delta_T / 4.5)
+         norm_cost = max(0.0, 1.0 - (cost / max(1.0, max_budget_usd)))
+         norm_pop = min(1.0, (physics_validated_delta_T * 1.2) / 4.0)
+         norm_water = max(0.0, 1.0 - (water / max(1.0, max_water_m3)))
+-        norm_energy = min(1.0, hvac_kwh_saved / 250000.0)
++        norm_energy = min(1.0, hvac_kwh_saved / max(1.0, total_district_m2))
+         
+         composite_score = round((
+             w_cool * norm_cooling +
+@@ -265,7 +293,9 @@
+             "tree_canopy_pct": round(float(tree_canopy * 100), 1),
+             "water_pct": round(float(water_feat * 100), 1),
+             "delta_t_mean": round(surrogate_delta_T, 2),
++            "mean_temp_reduction_c": round(surrogate_delta_T, 2),
+             "total_cost_usd": round(cost, 2),
++            "total_capex_usd": round(cost, 2),
+             "water_demand_m3": round(water, 2),
+             "land_area_m2": round(land_m2, 1),
+             "heat_risk_score": heat_risk_score,
+@@ -276,14 +306,34 @@
+             "composite_score": composite_score,
+             "physics_validated": is_physics_validated,
+             "validated_delta_t": round(physics_validated_delta_T, 2),
+-            "validation_error": round(val_error, 3)
++            "validation_error": round(val_error, 3),
++            "is_feasible": is_feasible,
++            "constraint_violations": violations
+         }
+         pareto_solutions.append(sol)
+             
+-    # Sort solutions by composite score descending
+-    pareto_solutions.sort(key=lambda s: s["composite_score"], reverse=True)
+-    validated_solutions = [s for s in pareto_solutions if s["physics_validated"]]
+-    recommended = validated_solutions[0] if validated_solutions else (pareto_solutions[0] if pareto_solutions else {})
++    # Filter candidates: prioritize feasible candidates, then physics-validated candidates
++    feasible_solutions = [s for s in pareto_solutions if s["is_feasible"]]
++    feasible_and_validated = [s for s in feasible_solutions if s["physics_validated"]]
++
++    if feasible_and_validated:
++        feasible_and_validated.sort(key=lambda s: s["composite_score"], reverse=True)
++        recommended = feasible_and_validated[0]
++        has_feasible = True
++        status_code = "optimal"
++    elif feasible_solutions:
++        feasible_solutions.sort(key=lambda s: s["composite_score"], reverse=True)
++        recommended = feasible_solutions[0]
++        has_feasible = True
++        status_code = "feasible_unvalidated"
++    else:
++        has_feasible = False
++        status_code = "no_feasible_solutions"
++        pareto_solutions.sort(key=lambda s: len(s["constraint_violations"]))
++        recommended = pareto_solutions[0] if pareto_solutions else None
++
++    # Sort all pareto_solutions: feasible with high composite score first
++    pareto_solutions.sort(key=lambda s: (1 if s["is_feasible"] else 0, s["composite_score"]), reverse=True)
+                 
+     return {
+         "objectives": [
+@@ -307,8 +357,15 @@
+             "water": round(w_water, 2),
+             "energy": round(w_energy, 2)
+         },
++        "has_feasible_solutions": has_feasible,
++        "status": status_code,
+         "pareto_solutions": pareto_solutions,
++        "pareto_front": pareto_solutions,
+         "recommended_solution": recommended,
+-        "physics_validated": bool(recommended.get("physics_validated", False)),
+-        "physics_validation_error_c": recommended.get("validation_error", 0.0)
++        "physics_validated": bool(recommended.get("physics_validated", False)) if recommended else False,
++        "physics_validation_error_c": recommended.get("validation_error", 0.0) if recommended else 0.0,
++        "study_area_id": study_area_id,
++        "analysis_window_area_m2": total_district_m2,
++        "district_area_m2": total_district_m2,
++        "building_footprint_m2": bldg_footprint_m2
+     }

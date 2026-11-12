@@ -1,0 +1,20 @@
+[Unit]
+Description=UrbanCoolSim Next.js Frontend Service
+After=network.target urbancoolsim-backend.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/urbancoolsim/frontend
+EnvironmentFile=/opt/urbancoolsim/.env
+Environment=NODE_ENV=production
+Environment=PORT=3000
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/urbancoolsim/frontend.log
+StandardError=append:/var/log/urbancoolsim/frontend_error.log
+
+[Install]
+WantedBy=multi-user.target
+

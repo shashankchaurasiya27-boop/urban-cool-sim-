@@ -1,0 +1,367 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "study_area_id": "phoenix_downtown",
+    "name": "Downtown Urban Core",
+    "city": "Phoenix",
+    "center": [
+      -112.074,
+      33.4484
+    ],
+    "bbox": [
+      -112.081,
+      33.442,
+      -112.067,
+      33.455
+    ]
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Margaret T. Hance Park Green Corridor",
+        "type": "park",
+        "canopy_height": 14.0,
+        "veg_fraction": 0.85,
+        "albedo": 0.22
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -112.0795,
+              33.453
+            ],
+            [
+              -112.0685,
+              33.453
+            ],
+            [
+              -112.0685,
+              33.4548
+            ],
+            [
+              -112.0795,
+              33.4548
+            ],
+            [
+              -112.0795,
+              33.453
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Chase Tower Phoenix",
+        "type": "building",
+        "height": 147.0,
+        "levels": 40,
+        "building": "commercial",
+        "albedo": 0.18
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -112.0745,
+              33.449
+            ],
+            [
+              -112.073,
+              33.449
+            ],
+            [
+              -112.073,
+              33.4475
+            ],
+            [
+              -112.0745,
+              33.4475
+            ],
+            [
+              -112.0745,
+              33.449
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "US Bank Center Phoenix",
+        "type": "building",
+        "height": 124.0,
+        "levels": 31,
+        "building": "commercial",
+        "albedo": 0.18
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -112.0738,
+              33.4504
+            ],
+            [
+              -112.0725,
+              33.4504
+            ],
+            [
+              -112.0725,
+              33.4492
+            ],
+            [
+              -112.0738,
+              33.4492
+            ],
+            [
+              -112.0738,
+              33.4504
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Freeport-McMoRan Center",
+        "type": "building",
+        "height": 117.0,
+        "levels": 26,
+        "building": "commercial",
+        "albedo": 0.18
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -112.0728,
+              33.4492
+            ],
+            [
+              -112.0715,
+              33.4492
+            ],
+            [
+              -112.0715,
+              33.448
+            ],
+            [
+              -112.0728,
+              33.448
+            ],
+            [
+              -112.0728,
+              33.4492
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Phoenix City Hall Complex",
+        "type": "building",
+        "height": 82.0,
+        "levels": 20,
+        "building": "commercial",
+        "albedo": 0.18
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -112.0772,
+              33.4482
+            ],
+            [
+              -112.0755,
+              33.4482
+            ],
+            [
+              -112.0755,
+              33.4468
+            ],
+            [
+              -112.0772,
+              33.4468
+            ],
+            [
+              -112.0772,
+              33.4482
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "44 Monroe Luxury Tower",
+        "type": "building",
+        "height": 116.0,
+        "levels": 34,
+        "building": "commercial",
+        "albedo": 0.18
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -112.0735,
+              33.4516
+            ],
+            [
+              -112.0722,
+              33.4516
+            ],
+            [
+              -112.0722,
+              33.4505
+            ],
+            [
+              -112.0735,
+              33.4505
+            ],
+            [
+              -112.0735,
+              33.4516
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Arizona Financial Theatre & Plaza",
+        "type": "building",
+        "height": 32.0,
+        "levels": 6,
+        "building": "commercial",
+        "albedo": 0.18
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -112.0782,
+              33.45
+            ],
+            [
+              -112.0765,
+              33.45
+            ],
+            [
+              -112.0765,
+              33.4485
+            ],
+            [
+              -112.0782,
+              33.4485
+            ],
+            [
+              -112.0782,
+              33.45
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Chase Field Stadium Footprint",
+        "type": "building",
+        "height": 48.0,
+        "levels": 8,
+        "building": "commercial",
+        "albedo": 0.18
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -112.07,
+              33.4465
+            ],
+            [
+              -112.0665,
+              33.4465
+            ],
+            [
+              -112.0665,
+              33.4435
+            ],
+            [
+              -112.07,
+              33.4435
+            ],
+            [
+              -112.07,
+              33.4465
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Central Avenue Corridor",
+        "type": "road",
+        "width_m": 32.0,
+        "albedo": 0.1
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -112.074,
+            33.442
+          ],
+          [
+            -112.074,
+            33.455
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Washington Street Corridor",
+        "type": "road",
+        "width_m": 28.0,
+        "albedo": 0.1
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -112.081,
+            33.448
+          ],
+          [
+            -112.067,
+            33.448
+          ]
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "project": "UrbanCoolSim",
+  "inventory_type": "legacy spatial feature file audit",
+  "source_directory": "backend/app/spatial/data/",
+  "warning": "Feature counts and tags were inspected from the archive. This inventory does not assert that any geometry is fictitious, but the files provide no upstream provenance or stable source IDs, so real-world accuracy/completeness cannot be verified from the archive alone.",
+  "areas": {
+    "delhi_cp": {
+      "file": "backend/app/spatial/data/delhi_cp_geo.json",
+      "feature_count": 29,
+      "type_counts": {
+        "building": 19,
+        "park": 1,
+        "road": 8,
+        "water": 1
+      },
+      "has_osm_object_ids": false,
+      "has_source_url_per_feature": false,
+      "has_retrieval_timestamp_per_feature": false,
+      "verified_against_upstream_source": false,
+      "classification": "curated_or_illustrative_feature_collection_unverified_as_a_complete_real_world_inventory"
+    },
+    "mumbai_bkc": {
+      "file": "backend/app/spatial/data/mumbai_bkc_geo.json",
+      "feature_count": 28,
+      "type_counts": {
+        "building": 24,
+        "park": 2,
+        "road": 1,
+        "water": 1
+      },
+      "has_osm_object_ids": false,
+      "has_source_url_per_feature": false,
+      "has_retrieval_timestamp_per_feature": false,
+      "verified_against_upstream_source": false,
+      "classification": "curated_or_illustrative_feature_collection_unverified_as_a_complete_real_world_inventory"
+    },
+    "phoenix_downtown": {
+      "file": "backend/app/spatial/data/phoenix_downtown_geo.json",
+      "feature_count": 10,
+      "type_counts": {
+        "building": 7,
+        "park": 1,
+        "road": 2
+      },
+      "has_osm_object_ids": false,
+      "has_source_url_per_feature": false,
+      "has_retrieval_timestamp_per_feature": false,
+      "verified_against_upstream_source": false,
+      "classification": "curated_or_illustrative_feature_collection_unverified_as_a_complete_real_world_inventory"
+    },
+    "singapore_marina": {
+      "file": "backend/app/spatial/data/singapore_marina_geo.json",
+      "feature_count": 12,
+      "type_counts": {
+        "building": 10,
+        "park": 1,
+        "water": 1
+      },
+      "has_osm_object_ids": false,
+      "has_source_url_per_feature": false,
+      "has_retrieval_timestamp_per_feature": false,
+      "verified_against_upstream_source": false,
+      "classification": "curated_or_illustrative_feature_collection_unverified_as_a_complete_real_world_inventory"
+    },
+    "tokyo_shinjuku": {
+      "file": "backend/app/spatial/data/tokyo_shinjuku_geo.json",
+      "feature_count": 10,
+      "type_counts": {
+        "building": 8,
+        "park": 1,
+        "road": 1
+      },
+      "has_osm_object_ids": false,
+      "has_source_url_per_feature": false,
+      "has_retrieval_timestamp_per_feature": false,
+      "verified_against_upstream_source": false,
+      "classification": "curated_or_illustrative_feature_collection_unverified_as_a_complete_real_world_inventory"
+    }
+  }
+}

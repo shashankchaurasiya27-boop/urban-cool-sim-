@@ -1,0 +1,1228 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "study_area_id": "mumbai_bkc",
+    "name": "Bandra Kurla Complex",
+    "city": "Mumbai",
+    "center": [
+      72.8683,
+      19.0657
+    ],
+    "bbox": [
+      72.86,
+      19.058,
+      72.877,
+      19.073
+    ]
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Mithi River Corridor",
+        "type": "water",
+        "albedo": 0.06,
+        "emissivity": 0.98
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8732,
+              19.0725
+            ],
+            [
+              72.8745,
+              19.0705
+            ],
+            [
+              72.8752,
+              19.068
+            ],
+            [
+              72.8755,
+              19.0655
+            ],
+            [
+              72.8748,
+              19.063
+            ],
+            [
+              72.8735,
+              19.061
+            ],
+            [
+              72.8715,
+              19.0592
+            ],
+            [
+              72.869,
+              19.0582
+            ],
+            [
+              72.8682,
+              19.0588
+            ],
+            [
+              72.8702,
+              19.0602
+            ],
+            [
+              72.8722,
+              19.062
+            ],
+            [
+              72.8735,
+              19.0645
+            ],
+            [
+              72.8738,
+              19.067
+            ],
+            [
+              72.8732,
+              19.0695
+            ],
+            [
+              72.8718,
+              19.0718
+            ],
+            [
+              72.8732,
+              19.0725
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Jio World Garden & City Park",
+        "type": "park",
+        "canopy_height": 18.0,
+        "veg_fraction": 0.92,
+        "albedo": 0.24
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.868,
+              19.0648
+            ],
+            [
+              72.8705,
+              19.0656
+            ],
+            [
+              72.8698,
+              19.0672
+            ],
+            [
+              72.8673,
+              19.0664
+            ],
+            [
+              72.868,
+              19.0648
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Maharashtra Nature Park (Mangrove Buffer)",
+        "type": "park",
+        "canopy_height": 14.0,
+        "veg_fraction": 0.88,
+        "albedo": 0.22
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.864,
+              19.059
+            ],
+            [
+              72.867,
+              19.0585
+            ],
+            [
+              72.8685,
+              19.0595
+            ],
+            [
+              72.8665,
+              19.0612
+            ],
+            [
+              72.8638,
+              19.0605
+            ],
+            [
+              72.864,
+              19.059
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "BKC Main Arterial Boulevard",
+        "type": "road",
+        "width_m": 35.0,
+        "albedo": 0.1
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            72.8615,
+            19.062
+          ],
+          [
+            72.8655,
+            19.0635
+          ],
+          [
+            72.869,
+            19.065
+          ],
+          [
+            72.8725,
+            19.0665
+          ],
+          [
+            72.8745,
+            19.0675
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bharat Diamond Bourse (BDB)",
+        "type": "building",
+        "height": 48.0,
+        "levels": 14,
+        "building": "commercial",
+        "albedo": 0.19,
+        "emissivity": 0.92
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8635,
+              19.0682
+            ],
+            [
+              72.8665,
+              19.0682
+            ],
+            [
+              72.8665,
+              19.066
+            ],
+            [
+              72.8635,
+              19.066
+            ],
+            [
+              72.8635,
+              19.0682
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Jio World Convention Centre",
+        "type": "building",
+        "height": 42.0,
+        "levels": 12,
+        "building": "commercial",
+        "albedo": 0.19,
+        "emissivity": 0.92
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8675,
+              19.0645
+            ],
+            [
+              72.8702,
+              19.0645
+            ],
+            [
+              72.8702,
+              19.0625
+            ],
+            [
+              72.8675,
+              19.0625
+            ],
+            [
+              72.8675,
+              19.0645
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Nita Mukesh Ambani Cultural Centre",
+        "type": "building",
+        "height": 38.0,
+        "levels": 10,
+        "building": "commercial",
+        "albedo": 0.19,
+        "emissivity": 0.92
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8703,
+              19.0642
+            ],
+            [
+              72.8718,
+              19.0642
+            ],
+            [
+              72.8718,
+              19.0628
+            ],
+            [
+              72.8703,
+              19.0628
+            ],
+            [
+              72.8703,
+              19.0642
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Maker Maxity Complex",
+        "type": "building",
+        "height": 52.0,
+        "levels": 15,
+        "building": "commercial",
+        "albedo": 0.19,
+        "emissivity": 0.92
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8618,
+              19.0662
+            ],
+            [
+              72.8636,
+              19.0662
+            ],
+            [
+              72.8636,
+              19.064
+            ],
+            [
+              72.8618,
+              19.064
+            ],
+            [
+              72.8618,
+              19.0662
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ICICI Bank National HQ",
+        "type": "building",
+        "height": 58.0,
+        "levels": 16,
+        "building": "commercial",
+        "albedo": 0.19,
+        "emissivity": 0.92
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8642,
+              19.0652
+            ],
+            [
+              72.8658,
+              19.0652
+            ],
+            [
+              72.8658,
+              19.0638
+            ],
+            [
+              72.8642,
+              19.0638
+            ],
+            [
+              72.8642,
+              19.0652
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "National Stock Exchange (NSE)",
+        "type": "building",
+        "height": 50.0,
+        "levels": 14,
+        "building": "commercial",
+        "albedo": 0.19,
+        "emissivity": 0.92
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.866,
+              19.0654
+            ],
+            [
+              72.8674,
+              19.0654
+            ],
+            [
+              72.8674,
+              19.064
+            ],
+            [
+              72.866,
+              19.064
+            ],
+            [
+              72.866,
+              19.0654
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "First International Financial Center (FIFC)",
+        "type": "building",
+        "height": 65.0,
+        "levels": 18,
+        "building": "commercial",
+        "albedo": 0.19,
+        "emissivity": 0.92
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8668,
+              19.068
+            ],
+            [
+              72.8685,
+              19.068
+            ],
+            [
+              72.8685,
+              19.0668
+            ],
+            [
+              72.8668,
+              19.0668
+            ],
+            [
+              72.8668,
+              19.068
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "IDFC First Bank Towers",
+        "type": "building",
+        "height": 62.0,
+        "levels": 17,
+        "building": "commercial",
+        "albedo": 0.19,
+        "emissivity": 0.92
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8686,
+              19.0682
+            ],
+            [
+              72.87,
+              19.0682
+            ],
+            [
+              72.87,
+              19.067
+            ],
+            [
+              72.8686,
+              19.067
+            ],
+            [
+              72.8686,
+              19.0682
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Signature Island Luxury Towers",
+        "type": "building",
+        "height": 74.0,
+        "levels": 21,
+        "building": "commercial",
+        "albedo": 0.19,
+        "emissivity": 0.92
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8655,
+              19.0698
+            ],
+            [
+              72.8672,
+              19.0698
+            ],
+            [
+              72.8672,
+              19.0685
+            ],
+            [
+              72.8655,
+              19.0685
+            ],
+            [
+              72.8655,
+              19.0698
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Platina Commercial Tower",
+        "type": "building",
+        "height": 55.0,
+        "levels": 15,
+        "building": "commercial",
+        "albedo": 0.19,
+        "emissivity": 0.92
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8638,
+              19.0696
+            ],
+            [
+              72.8652,
+              19.0696
+            ],
+            [
+              72.8652,
+              19.0684
+            ],
+            [
+              72.8638,
+              19.0684
+            ],
+            [
+              72.8638,
+              19.0696
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "US Consulate General Mumbai",
+        "type": "building",
+        "height": 28.0,
+        "levels": 7,
+        "building": "commercial",
+        "albedo": 0.19,
+        "emissivity": 0.92
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8685,
+              19.0705
+            ],
+            [
+              72.8712,
+              19.0705
+            ],
+            [
+              72.8712,
+              19.0685
+            ],
+            [
+              72.8685,
+              19.0685
+            ],
+            [
+              72.8685,
+              19.0705
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Asian Heart Institute & Hospital",
+        "type": "building",
+        "height": 36.0,
+        "levels": 10,
+        "building": "commercial",
+        "albedo": 0.19,
+        "emissivity": 0.92
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8648,
+              19.0625
+            ],
+            [
+              72.867,
+              19.0625
+            ],
+            [
+              72.867,
+              19.061
+            ],
+            [
+              72.8648,
+              19.061
+            ],
+            [
+              72.8648,
+              19.0625
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "One BKC Financial Tower",
+        "type": "building",
+        "height": 68.0,
+        "levels": 19,
+        "building": "commercial",
+        "albedo": 0.19,
+        "emissivity": 0.92
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8675,
+              19.062
+            ],
+            [
+              72.8695,
+              19.062
+            ],
+            [
+              72.8695,
+              19.0605
+            ],
+            [
+              72.8675,
+              19.0605
+            ],
+            [
+              72.8675,
+              19.062
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Mumbai Cricket Association (MCA) Club",
+        "type": "building",
+        "height": 22.0,
+        "levels": 5,
+        "building": "commercial",
+        "albedo": 0.19,
+        "emissivity": 0.92
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.863,
+              19.0636
+            ],
+            [
+              72.8646,
+              19.0636
+            ],
+            [
+              72.8646,
+              19.0622
+            ],
+            [
+              72.863,
+              19.0622
+            ],
+            [
+              72.863,
+              19.0636
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Trent House",
+        "type": "building",
+        "height": 45.0,
+        "levels": 12,
+        "building": "commercial"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8677746,
+              19.0683787
+            ],
+            [
+              72.867986,
+              19.0680681
+            ],
+            [
+              72.8677823,
+              19.0679443
+            ],
+            [
+              72.867571,
+              19.0682549
+            ],
+            [
+              72.8677746,
+              19.0683787
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "IDFC First Bank",
+        "type": "building",
+        "height": 45.0,
+        "levels": 12,
+        "building": "commercial"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8673566,
+              19.0680494
+            ],
+            [
+              72.8677046,
+              19.0675116
+            ],
+            [
+              72.8675594,
+              19.0674277
+            ],
+            [
+              72.8672114,
+              19.0679655
+            ],
+            [
+              72.8673566,
+              19.0680494
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "First International Financial Center",
+        "type": "building",
+        "height": 45.0,
+        "levels": 12,
+        "building": "commercial"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8692787,
+              19.0692936
+            ],
+            [
+              72.8699751,
+              19.0697461
+            ],
+            [
+              72.8702087,
+              19.0694251
+            ],
+            [
+              72.8695122,
+              19.0689725
+            ],
+            [
+              72.8692787,
+              19.0692936
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Platina",
+        "type": "building",
+        "height": 45.0,
+        "levels": 12,
+        "building": "commercial"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.868033,
+              19.0684301
+            ],
+            [
+              72.868403,
+              19.0686483
+            ],
+            [
+              72.8686619,
+              19.0683395
+            ],
+            [
+              72.8682872,
+              19.0680896
+            ],
+            [
+              72.868033,
+              19.0684301
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Signature Island",
+        "type": "building",
+        "height": 45.0,
+        "levels": 12,
+        "building": "commercial"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.868862,
+              19.0665629
+            ],
+            [
+              72.8694334,
+              19.0670851
+            ],
+            [
+              72.8697058,
+              19.0668009
+            ],
+            [
+              72.8691197,
+              19.0662689
+            ],
+            [
+              72.868862,
+              19.0665629
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Laxmi Tower",
+        "type": "building",
+        "height": 45.0,
+        "levels": 12,
+        "building": "commercial"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.863452,
+              19.0631563
+            ],
+            [
+              72.863634,
+              19.0633363
+            ],
+            [
+              72.8636653,
+              19.0633774
+            ],
+            [
+              72.8638407,
+              19.0635731
+            ],
+            [
+              72.8640389,
+              19.0634058
+            ],
+            [
+              72.86398,
+              19.0633468
+            ],
+            [
+              72.864361,
+              19.0630069
+            ],
+            [
+              72.8644047,
+              19.0630507
+            ],
+            [
+              72.8646316,
+              19.0628484
+            ],
+            [
+              72.8645061,
+              19.0627227
+            ],
+            [
+              72.8645292,
+              19.0626867
+            ],
+            [
+              72.8645304,
+              19.0626491
+            ],
+            [
+              72.8645167,
+              19.0626149
+            ],
+            [
+              72.8644721,
+              19.0625911
+            ],
+            [
+              72.8644292,
+              19.0626008
+            ],
+            [
+              72.8644043,
+              19.0625701
+            ],
+            [
+              72.8643401,
+              19.0626097
+            ],
+            [
+              72.8643109,
+              19.0625744
+            ],
+            [
+              72.8642087,
+              19.0626641
+            ],
+            [
+              72.8641554,
+              19.0626128
+            ],
+            [
+              72.8640893,
+              19.0626355
+            ],
+            [
+              72.8640281,
+              19.0626838
+            ],
+            [
+              72.8638339,
+              19.062812
+            ],
+            [
+              72.8637969,
+              19.0628783
+            ],
+            [
+              72.863452,
+              19.0631563
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Signia Isles",
+        "type": "building",
+        "height": 45.0,
+        "levels": 12,
+        "building": "commercial"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8696116,
+              19.067205
+            ],
+            [
+              72.8698891,
+              19.0674602
+            ],
+            [
+              72.8699326,
+              19.0674273
+            ],
+            [
+              72.8699768,
+              19.0674401
+            ],
+            [
+              72.8701622,
+              19.0672298
+            ],
+            [
+              72.8701059,
+              19.0671668
+            ],
+            [
+              72.8698808,
+              19.0669538
+            ],
+            [
+              72.8696116,
+              19.067205
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Mumbai BKC",
+        "type": "building",
+        "height": 45.0,
+        "levels": 12,
+        "building": "commercial"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8668573,
+              19.0686237
+            ],
+            [
+              72.8665352,
+              19.0690931
+            ],
+            [
+              72.8628355,
+              19.0668252
+            ],
+            [
+              72.8631576,
+              19.0663558
+            ],
+            [
+              72.8668573,
+              19.0686237
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Jio World Residences",
+        "type": "building",
+        "height": 45.0,
+        "levels": 12,
+        "building": "commercial"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8672772,
+              19.0623004
+            ],
+            [
+              72.8667293,
+              19.0622557
+            ],
+            [
+              72.8665523,
+              19.0641925
+            ],
+            [
+              72.8671002,
+              19.0642373
+            ],
+            [
+              72.8672772,
+              19.0623004
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Jio World Offices",
+        "type": "building",
+        "height": 45.0,
+        "levels": 12,
+        "building": "commercial"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8657967,
+              19.0637758
+            ],
+            [
+              72.8662147,
+              19.0636298
+            ],
+            [
+              72.866062,
+              19.0632393
+            ],
+            [
+              72.8665877,
+              19.0627882
+            ],
+            [
+              72.8664619,
+              19.0624059
+            ],
+            [
+              72.8655231,
+              19.0630761
+            ],
+            [
+              72.8657967,
+              19.0637758
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

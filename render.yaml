@@ -1,0 +1,66 @@
+services:
+  # ----------------------------------------------------------------------------
+  # Backend API Service (FastAPI)
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: urbancoolsim-backend
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: pip install --upgrade pip && pip install -r backend/requirements.txt
+    startCommand: cd backend && ./start.sh
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: urbancoolsim-postgres
+          property: connectionString
+      - key: CORS_ORIGINS
+        value: "http://localhost:3000,https://urbancoolsim-frontend.onrender.com"
+
+  # ----------------------------------------------------------------------------
+  # Frontend Application (Next.js 14)
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: urbancoolsim-frontend
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: cd frontend && npm ci && npm run build
+    startCommand: cd frontend && npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.0
+      - key: NODE_ENV
+        value: production
+      - key: BACKEND_INTERNAL_URL
+        fromService:
+          type: web
+          name: urbancoolsim-backend
+          property: host
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: urbancoolsim-backend
+          property: host
+
+databases:
+  # ----------------------------------------------------------------------------
+  # Managed PostgreSQL Database
+  # ----------------------------------------------------------------------------
+  - name: urbancoolsim-postgres
+    databaseName: urbancoolsim
+    user: urbancoolsim
+    region: oregon
+    plan: free
+

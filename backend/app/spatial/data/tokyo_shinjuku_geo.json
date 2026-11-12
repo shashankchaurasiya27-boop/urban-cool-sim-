@@ -1,0 +1,383 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "study_area_id": "tokyo_shinjuku",
+    "name": "Shinjuku Skyscraper Center",
+    "city": "Tokyo",
+    "center": [
+      139.6965,
+      35.6905
+    ],
+    "bbox": [
+      139.69,
+      35.684,
+      139.703,
+      35.697
+    ]
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Shinjuku Central Park",
+        "type": "park",
+        "canopy_height": 20.0,
+        "veg_fraction": 0.92,
+        "albedo": 0.24
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              139.691,
+              35.688
+            ],
+            [
+              139.6938,
+              35.688
+            ],
+            [
+              139.6938,
+              35.6935
+            ],
+            [
+              139.691,
+              35.6935
+            ],
+            [
+              139.691,
+              35.688
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "JR Shinjuku Station Rail Hub & Tracks",
+        "type": "road",
+        "width_m": 45.0,
+        "albedo": 0.11
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            139.7005,
+            35.6845
+          ],
+          [
+            139.701,
+            35.6965
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Tokyo Metropolitan Government Building No. 1 (TMG)",
+        "type": "building",
+        "height": 243.0,
+        "levels": 48,
+        "building": "commercial",
+        "albedo": 0.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              139.6915,
+              35.6905
+            ],
+            [
+              139.6928,
+              35.6905
+            ],
+            [
+              139.6928,
+              35.689
+            ],
+            [
+              139.6915,
+              35.689
+            ],
+            [
+              139.6915,
+              35.6905
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Tokyo Metropolitan Government Building No. 2",
+        "type": "building",
+        "height": 163.0,
+        "levels": 34,
+        "building": "commercial",
+        "albedo": 0.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              139.6915,
+              35.6888
+            ],
+            [
+              139.6928,
+              35.6888
+            ],
+            [
+              139.6928,
+              35.6875
+            ],
+            [
+              139.6915,
+              35.6875
+            ],
+            [
+              139.6915,
+              35.6888
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Shinjuku Park Tower (Park Hyatt Tokyo)",
+        "type": "building",
+        "height": 235.0,
+        "levels": 52,
+        "building": "commercial",
+        "albedo": 0.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              139.693,
+              35.687
+            ],
+            [
+              139.6945,
+              35.687
+            ],
+            [
+              139.6945,
+              35.6855
+            ],
+            [
+              139.693,
+              35.6855
+            ],
+            [
+              139.693,
+              35.687
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Mode Gakuen Cocoon Tower",
+        "type": "building",
+        "height": 204.0,
+        "levels": 50,
+        "building": "commercial",
+        "albedo": 0.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              139.698,
+              35.6924
+            ],
+            [
+              139.6992,
+              35.6924
+            ],
+            [
+              139.6992,
+              35.6912
+            ],
+            [
+              139.698,
+              35.6912
+            ],
+            [
+              139.698,
+              35.6924
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Shinjuku Mitsui Building",
+        "type": "building",
+        "height": 225.0,
+        "levels": 55,
+        "building": "commercial",
+        "albedo": 0.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              139.6932,
+              35.6938
+            ],
+            [
+              139.6946,
+              35.6938
+            ],
+            [
+              139.6946,
+              35.6925
+            ],
+            [
+              139.6932,
+              35.6925
+            ],
+            [
+              139.6932,
+              35.6938
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Shinjuku Sumitomo Building",
+        "type": "building",
+        "height": 210.0,
+        "levels": 52,
+        "building": "commercial",
+        "albedo": 0.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              139.6922,
+              35.6928
+            ],
+            [
+              139.6935,
+              35.6928
+            ],
+            [
+              139.6935,
+              35.6915
+            ],
+            [
+              139.6922,
+              35.6915
+            ],
+            [
+              139.6922,
+              35.6928
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sompo Japan Building",
+        "type": "building",
+        "height": 200.0,
+        "levels": 43,
+        "building": "commercial",
+        "albedo": 0.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              139.696,
+              35.6938
+            ],
+            [
+              139.6974,
+              35.6938
+            ],
+            [
+              139.6974,
+              35.6925
+            ],
+            [
+              139.696,
+              35.6925
+            ],
+            [
+              139.696,
+              35.6938
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Kabukicho Entertainment Canyon Core",
+        "type": "building",
+        "height": 36.0,
+        "levels": 9,
+        "building": "commercial",
+        "albedo": 0.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              139.7015,
+              35.696
+            ],
+            [
+              139.704,
+              35.696
+            ],
+            [
+              139.704,
+              35.6935
+            ],
+            [
+              139.7015,
+              35.6935
+            ],
+            [
+              139.7015,
+              35.696
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

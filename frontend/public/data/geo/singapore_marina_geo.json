@@ -1,0 +1,493 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "study_area_id": "singapore_marina",
+    "name": "Marina Bay Financial District",
+    "city": "Singapore",
+    "center": [
+      103.8565,
+      1.2847
+    ],
+    "bbox": [
+      103.85,
+      1.278,
+      103.863,
+      1.291
+    ]
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Marina Bay Water Body",
+        "type": "water",
+        "albedo": 0.06,
+        "emissivity": 0.98
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.851,
+              1.288
+            ],
+            [
+              103.854,
+              1.2895
+            ],
+            [
+              103.857,
+              1.2885
+            ],
+            [
+              103.859,
+              1.2855
+            ],
+            [
+              103.858,
+              1.2815
+            ],
+            [
+              103.8545,
+              1.28
+            ],
+            [
+              103.8515,
+              1.282
+            ],
+            [
+              103.851,
+              1.285
+            ],
+            [
+              103.851,
+              1.288
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Gardens by the Bay (Supertree Grove & Domes)",
+        "type": "park",
+        "canopy_height": 22.0,
+        "veg_fraction": 0.94,
+        "albedo": 0.25
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.861,
+              1.286
+            ],
+            [
+              103.8655,
+              1.2875
+            ],
+            [
+              103.867,
+              1.2825
+            ],
+            [
+              103.8635,
+              1.2795
+            ],
+            [
+              103.8605,
+              1.2815
+            ],
+            [
+              103.861,
+              1.286
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Marina Bay Sands Tower 1",
+        "type": "building",
+        "height": 200.0,
+        "levels": 57,
+        "building": "hotel",
+        "albedo": 0.28
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.8595,
+              1.2835
+            ],
+            [
+              103.8608,
+              1.2835
+            ],
+            [
+              103.8608,
+              1.2825
+            ],
+            [
+              103.8595,
+              1.2825
+            ],
+            [
+              103.8595,
+              1.2835
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Marina Bay Sands Tower 2",
+        "type": "building",
+        "height": 200.0,
+        "levels": 57,
+        "building": "hotel",
+        "albedo": 0.28
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.86,
+              1.2848
+            ],
+            [
+              103.8613,
+              1.2848
+            ],
+            [
+              103.8613,
+              1.2838
+            ],
+            [
+              103.86,
+              1.2838
+            ],
+            [
+              103.86,
+              1.2848
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Marina Bay Sands Tower 3",
+        "type": "building",
+        "height": 200.0,
+        "levels": 57,
+        "building": "hotel",
+        "albedo": 0.28
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.8605,
+              1.2861
+            ],
+            [
+              103.8618,
+              1.2861
+            ],
+            [
+              103.8618,
+              1.2851
+            ],
+            [
+              103.8605,
+              1.2851
+            ],
+            [
+              103.8605,
+              1.2861
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sands SkyPark Cantilever Deck",
+        "type": "building",
+        "height": 206.0,
+        "levels": 58,
+        "building": "hotel",
+        "albedo": 0.28
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.8593,
+              1.2863
+            ],
+            [
+              103.862,
+              1.2863
+            ],
+            [
+              103.862,
+              1.2823
+            ],
+            [
+              103.8593,
+              1.2823
+            ],
+            [
+              103.8593,
+              1.2863
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "One Raffles Quay (North & South Towers)",
+        "type": "building",
+        "height": 240.0,
+        "levels": 50,
+        "building": "commercial",
+        "albedo": 0.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.852,
+              1.2828
+            ],
+            [
+              103.8535,
+              1.2828
+            ],
+            [
+              103.8535,
+              1.281
+            ],
+            [
+              103.852,
+              1.281
+            ],
+            [
+              103.852,
+              1.2828
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Marina Bay Financial Centre (MBFC Tower 1-3)",
+        "type": "building",
+        "height": 245.0,
+        "levels": 48,
+        "building": "commercial",
+        "albedo": 0.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.8538,
+              1.2812
+            ],
+            [
+              103.8562,
+              1.2812
+            ],
+            [
+              103.8562,
+              1.2792
+            ],
+            [
+              103.8538,
+              1.2792
+            ],
+            [
+              103.8538,
+              1.2812
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Asia Square Towers",
+        "type": "building",
+        "height": 221.0,
+        "levels": 43,
+        "building": "commercial",
+        "albedo": 0.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.8515,
+              1.2802
+            ],
+            [
+              103.853,
+              1.2802
+            ],
+            [
+              103.853,
+              1.2785
+            ],
+            [
+              103.8515,
+              1.2785
+            ],
+            [
+              103.8515,
+              1.2802
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "One Raffles Place Tower",
+        "type": "building",
+        "height": 280.0,
+        "levels": 63,
+        "building": "commercial",
+        "albedo": 0.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.8505,
+              1.285
+            ],
+            [
+              103.8518,
+              1.285
+            ],
+            [
+              103.8518,
+              1.2838
+            ],
+            [
+              103.8505,
+              1.2838
+            ],
+            [
+              103.8505,
+              1.285
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Republic Plaza",
+        "type": "building",
+        "height": 280.0,
+        "levels": 66,
+        "building": "commercial",
+        "albedo": 0.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.85,
+              1.2836
+            ],
+            [
+              103.8512,
+              1.2836
+            ],
+            [
+              103.8512,
+              1.2825
+            ],
+            [
+              103.85,
+              1.2825
+            ],
+            [
+              103.85,
+              1.2836
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "UOB Plaza One",
+        "type": "building",
+        "height": 280.0,
+        "levels": 67,
+        "building": "commercial",
+        "albedo": 0.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.8495,
+              1.286
+            ],
+            [
+              103.8508,
+              1.286
+            ],
+            [
+              103.8508,
+              1.2848
+            ],
+            [
+              103.8495,
+              1.2848
+            ],
+            [
+              103.8495,
+              1.286
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

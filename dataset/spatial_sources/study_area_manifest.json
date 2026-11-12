@@ -1,0 +1,77 @@
+{
+  "project": "UrbanCoolSim",
+  "manifest_type": "configured_analysis_windows_not_official_boundaries",
+  "source_of_truth": "backend/app/spatial/geo_digital_twin.py::STUDY_AREA_CONFIGS",
+  "coordinate_convention": "WGS 84 / EPSG:4326, [west, south, east, north] for bbox; GeoJSON feature coordinates [longitude, latitude]",
+  "official_boundary_verified": false,
+  "areas": {
+    "mumbai_bkc": {
+      "name": "Bandra Kurla Complex (BKC)",
+      "city": "Mumbai",
+      "country": "India",
+      "analysis_bbox_wgs84": [
+        72.861,
+        19.059,
+        72.8756,
+        19.0724
+      ],
+      "configured_projected_crs": "EPSG:32643",
+      "boundary_status": "analysis_window_bbox_only; not an official district polygon"
+    },
+    "delhi_cp": {
+      "name": "Connaught Place Radial District",
+      "city": "New Delhi",
+      "country": "India",
+      "analysis_bbox_wgs84": [
+        77.213,
+        28.627,
+        77.2264,
+        28.6386
+      ],
+      "configured_projected_crs": "EPSG:32643",
+      "boundary_status": "analysis_window_bbox_only; not an official district polygon"
+    },
+    "singapore_marina": {
+      "name": "Marina Bay Financial District",
+      "city": "Singapore",
+      "country": "Singapore",
+      "analysis_bbox_wgs84": [
+        103.8495,
+        1.278,
+        103.8635,
+        1.2914
+      ],
+      "configured_projected_crs": "EPSG:32648",
+      "boundary_status": "analysis_window_bbox_only; not an official district polygon"
+    },
+    "phoenix_downtown": {
+      "name": "Downtown Urban Core",
+      "city": "Phoenix, AZ",
+      "country": "USA",
+      "analysis_bbox_wgs84": [
+        -112.081,
+        33.442,
+        -112.067,
+        33.4548
+      ],
+      "configured_projected_crs": "EPSG:32612",
+      "boundary_status": "analysis_window_bbox_only; not an official district polygon"
+    },
+    "tokyo_shinjuku": {
+      "name": "Shinjuku Skyscraper Center",
+      "city": "Tokyo",
+      "country": "Japan",
+      "analysis_bbox_wgs84": [
+        139.6895,
+        35.684,
+        139.7035,
+        35.697
+      ],
+      "configured_projected_crs": "EPSG:32654",
+      "boundary_status": "analysis_window_bbox_only; not an official district polygon"
+    }
+  },
+  "status_note": "This is an analysis-window registry, not GIS feature data. Real OSM feature files are marked downloaded only after successful live acquisition.",
+  "package_generation_download_status": "NOT_DOWNLOADED_IN_THIS_EXECUTION",
+  "manifest_role": "static reference copy of configured analysis windows; for live per-run download status use dataset/raw/vector/osm/manifest.json"
+}

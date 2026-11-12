@@ -1,0 +1,66 @@
+services:
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: urbancoolsim_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-urbancoolsim}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-urbancoolsim_prod_secret_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-urbancoolsim}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-urbancoolsim}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: urbancoolsim_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-urbancoolsim}:${POSTGRES_PASSWORD:-urbancoolsim_prod_secret_pass}@postgres:5432/${POSTGRES_DB:-urbancoolsim}
+      - SYNC_DATABASE_URL=postgresql://${POSTGRES_USER:-urbancoolsim}:${POSTGRES_PASSWORD:-urbancoolsim_prod_secret_pass}@postgres:5432/${POSTGRES_DB:-urbancoolsim}
+      - SECRET_KEY=${SECRET_KEY:-urbancoolsim_docker_production_secret_key_32_bytes_min}
+      - ENVIRONMENT=production
+      - DEBUG=False
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+    volumes:
+      - ./dataset:/app/dataset:ro
+      - ./backend/storage:/app/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    container_name: urbancoolsim_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      - BACKEND_INTERNAL_URL=http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

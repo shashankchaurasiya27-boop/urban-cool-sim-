@@ -1,0 +1,97 @@
+{
+  "project_name": "UrbanCoolSim",
+  "checkpoint_identifier": "C2",
+  "audit_timestamp_iso": "2026-10-27T01:00:00+05:30",
+  "auditor_role": "Senior Release Engineer, QA Auditor & Supply-Chain Integrity Specialist",
+  "source_identity": {
+    "repository_type": "Standalone verified distribution tree (untracked in parent Downloads git repo)",
+    "git_commit_hash": null,
+    "source_snapshot_sha256": "5f94dbd865f33341918bca7c943a14e0a1cd57c0eef39979d8ac7595685b4613",
+    "total_source_files_fingerprinted": 190,
+    "fingerprint_policy": "All canonical code in backend, frontend, dataset utilities, scripts, docs, configs; excluding node_modules, virtualenvs, .next, build caches, databases, logs, and artifacts"
+  },
+  "test_evidence": {
+    "supplied_run": {
+      "test_count": 83,
+      "passed": 83,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "timestamp": "2026-10-27T00:38:44.461290+05:30",
+      "duration_seconds": 19.327,
+      "report_path": "artifacts/c2-final-closure/junit_report.xml",
+      "sha256": "438c88d4adbd314081c7e937d571f544604d57c28fa4868f7b7cbfe99881d777"
+    },
+    "independent_auditor_rerun": {
+      "test_count": 83,
+      "passed": 83,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "timestamp": "2026-10-27T00:58:51.767864+05:30",
+      "duration_seconds": 19.948,
+      "test_command": "PYTHONPATH=backend ./.venv-backend/bin/pytest backend/tests/ -v --junitxml=artifacts/c2-release-audit-staging/junit_report.xml",
+      "exit_code": 0,
+      "report_path": "artifacts/c2-release-audit-staging/junit_report.xml",
+      "sha256": "4896da2bcc4bacd18ac5674f434c006f392bf14d185f53fb9916fb45ba83e683",
+      "log_path": "artifacts/c2-release-audit-staging/logs/pytest_audit_run.log"
+    },
+    "suite_breakdown": {
+      "backend.tests.test_backend": 11,
+      "backend.tests.test_c2_grid_contract": 49,
+      "backend.tests.test_grid_integrity": 5,
+      "backend.tests.test_remediation": 17,
+      "backend.tests.test_validation_evaluator_unit": 1
+    }
+  },
+  "release_artifacts": {
+    "sanitized_project_archive": {
+      "filename": "UrbanCoolSim_C2_Verified_Project.zip",
+      "size_bytes": 6378445,
+      "sha256": "530f0b279e400493218d00eeae767d75bff3a73029449197cf022fda87ec726d",
+      "entries_count": 250,
+      "root_prefix": "UrbanCoolSim/"
+    },
+    "verification_handoff_archive": {
+      "filename": "UrbanCoolSim_C2_Verification_Handoff.zip",
+      "size_bytes": 167462,
+      "sha256": "2ab33675eaba3d00f13132bcacaac83f67fc038e7e776437a6db9b481da74df2",
+      "entries_count": 10,
+      "manifest_strategy": "Two-level manifest: contains Level 1 internal evidence manifest; signed by Level 2 detached manifest"
+    },
+    "shareable_turnkey_archive": {
+      "filename": "UrbanCoolSim_Shareable.zip",
+      "size_bytes": 13062875,
+      "sha256": "e1941793281beb0df186fe0e056cdc232109d28123e5cbbedf1cc051faa568ae",
+      "entries_count": 262
+    },
+    "standalone_patch": {
+      "filename": "UrbanCoolSim_C2_Optimizer_Feasibility_Fix.patch",
+      "size_bytes": 8965,
+      "sha256": "dd9c43fa239eebf858d46bc161c23ad5828425916efae8fd6c24af4b1f96c335"
+    }
+  },
+  "manifest_audit": {
+    "detached_manifest_path": "artifacts/c2-release-audit-staging/C2_FINAL_SHA256SUMS.txt",
+    "entries_checked": 11,
+    "entries_matched": 11,
+    "mismatches": 0,
+    "status": "PASS"
+  },
+  "security_and_hygiene": {
+    "sqlite_databases_found": 0,
+    "raw_env_files_found": 0,
+    "exposed_secrets_found": 0,
+    "trailing_dot_directories": 0,
+    "status": "PASS"
+  },
+  "gates_evaluation": {
+    "Gate A \u2014 Test evidence": "PASS",
+    "Gate B \u2014 Source/archive identity": "PASS",
+    "Gate C \u2014 Artifact hygiene": "PASS",
+    "Gate D \u2014 Manifest integrity": "PASS",
+    "Gate E \u2014 Handoff reproducibility": "PASS",
+    "Gate F \u2014 C2 technical acceptance": "PASS"
+  },
+  "final_verdict": "PASS \u2014 C2 READY TO CLOSE"
+}

@@ -1,0 +1,1922 @@
+--- a/backend/app/spatial/geo_digital_twin.py
++++ b/backend/app/spatial/geo_digital_twin.py
+@@ -11,6 +11,7 @@
+ 
+ import json
+ import math
++import hashlib
+ from pathlib import Path
+ from typing import Dict, Any, Optional, List, Tuple
+ import numpy as np
+@@ -19,6 +20,92 @@
+ from app.physics.energy_balance import EnergyBalanceSolver
+ 
+ DATA_DIR = Path(__file__).resolve().parent / "data"
++OSM_PROCESSED_DIR = Path(__file__).resolve().parents[3] / "dataset" / "processed" / "spatial_vectors"
++
++
++def normalize_spatial_feature(feat: Dict[str, Any]) -> Dict[str, Any]:
++    """
++    Normalizes OpenStreetMap acquired vector features into the internal rasterizer schema.
++    Maps feature_class ('building', 'transport', 'green_space', 'water', 'landuse_context')
++    and extracts heights, road widths, and vegetation attributes from osm_tags.
++    """
++    props = feat.get("properties", {})
++    geom = feat.get("geometry", {})
++    osm_tags = props.get("osm_tags") or {}
++
++    # If already using legacy curated format with props.type
++    if "type" in props and "feature_class" not in props:
++        return feat
++
++    f_class = props.get("feature_class", "")
++    norm_props = dict(props)
++    name = osm_tags.get("name") or props.get("name") or ""
++    norm_props["name"] = name
++
++    if f_class == "building":
++        norm_props["type"] = "building"
++        raw_height = osm_tags.get("height")
++        height = 22.0
++        if raw_height:
++            try:
++                cleaned = str(raw_height).replace("m", "").replace("meters", "").strip()
++                parsed_h = float(cleaned)
++                height = parsed_h if parsed_h > 0.0 else 22.0
++            except (ValueError, TypeError):
++                height = 22.0
++        elif "building:levels" in osm_tags:
++            try:
++                levels = float(osm_tags["building:levels"])
++                height = max(3.5, levels * 3.5) if levels > 0.0 else 22.0
++            except (ValueError, TypeError):
++                height = 22.0
++        norm_props["height"] = round(height, 1)
++        norm_props["albedo"] = 0.19
++
++    elif f_class == "transport":
++        norm_props["type"] = "road"
++        hw = osm_tags.get("highway", "")
++        if hw in ("motorway", "trunk", "motorway_link", "trunk_link"):
++            w_m = 24.0
++        elif hw in ("primary", "primary_link"):
++            w_m = 18.0
++        elif hw in ("secondary", "secondary_link"):
++            w_m = 14.0
++        elif hw in ("tertiary", "tertiary_link"):
++            w_m = 12.0
++        elif hw in ("residential", "living_street", "unclassified"):
++            w_m = 10.0
++        elif hw in ("service", "footway", "pedestrian", "cycleway", "path", "track"):
++            w_m = 6.0
++        else:
++            w_m = 10.0
++        norm_props["width_m"] = w_m
++        norm_props["albedo"] = 0.10
++
++    elif f_class == "green_space":
++        norm_props["type"] = "park"
++        norm_props["veg_fraction"] = 0.85
++        norm_props["canopy_height"] = 14.0
++        norm_props["albedo"] = 0.22
++
++    elif f_class == "water":
++        norm_props["type"] = "water"
++        norm_props["albedo"] = 0.06
++        norm_props["width_m"] = 25.0
++
++    elif f_class == "landuse_context":
++        norm_props["type"] = "landuse"
++        norm_props["albedo"] = 0.18
++
++    else:
++        norm_props["type"] = f_class or "other"
++
++    return {
++        "type": feat.get("type", "Feature"),
++        "properties": norm_props,
++        "geometry": geom
++    }
++
+ 
+ # Accurate Bounding Boxes (EPSG:4326 WGS-84 [west, south, east, north]) and Centers
+ STUDY_AREA_CONFIGS: Dict[str, Dict[str, Any]] = {
+@@ -130,34 +217,74 @@
+ class GeoDigitalTwinEngine:
+     """High-Fidelity Real-World Spatial Vector-to-Microgrid Ingestion & Simulation Engine."""
+ 
+-    def __init__(self, data_dir: Optional[Path] = None):
++    def __init__(self, data_dir: Optional[Path] = None, osm_dir: Optional[Path] = None):
+         self.data_dir = data_dir or DATA_DIR
++        self.osm_dir = osm_dir or OSM_PROCESSED_DIR
+         self._geojson_cache: Dict[str, Dict[str, Any]] = {}
+ 
+     def get_study_area_geojson(self, study_area_id: str) -> Optional[Dict[str, Any]]:
+-        """Returns the curated GeoJSON feature collection for the study area."""
++        """
++        Loads the active GeoJSON feature collection for the study area.
++        Prefers live acquired & clipped OpenStreetMap features from dataset/processed/spatial_vectors/,
++        falling back to backend/app/spatial/data/{study_area_id}_geo.json if unavailable.
++        """
+         if study_area_id in self._geojson_cache:
+             return self._geojson_cache[study_area_id]
+-        
+-        file_path = self.data_dir / f"{study_area_id}_geo.json"
+-        if not file_path.exists():
+-            return None
+-        
+-        try:
+-            with open(file_path, "r", encoding="utf-8") as f:
+-                data = json.load(f)
+-            self._geojson_cache[study_area_id] = data
+-            return data
+-        except Exception as e:
+-            print(f"[GeoDigitalTwinEngine] Error loading {file_path}: {e}")
+-            return None
++
++        osm_path = self.osm_dir / f"{study_area_id}_features_clipped.geojson"
++        curated_path = self.data_dir / f"{study_area_id}_geo.json"
++
++        loaded_data = None
++
++        if osm_path.exists():
++            try:
++                with open(osm_path, "r", encoding="utf-8") as f:
++                    raw_data = json.load(f)
++                norm_features = [normalize_spatial_feature(feat) for feat in raw_data.get("features", [])]
++                loaded_data = {
++                    "type": "FeatureCollection",
++                    "metadata": {
++                        "study_area_id": study_area_id,
++                        "data_source": "live_osm_acquired",
++                        "source_file": osm_path.name,
++                        "feature_count": len(norm_features),
++                        "data_provenance": "OpenStreetMap Overpass physical vector snapshot (ODbL, © OpenStreetMap contributors)",
++                        "retrieved_at_utc": norm_features[0].get("properties", {}).get("retrieved_at_utc") if norm_features else None
++                    },
++                    "features": norm_features
++                }
++            except Exception as e:
++                print(f"[GeoDigitalTwinEngine] Warning: Failed loading OSM data from {osm_path}: {e}")
++
++        if loaded_data is None and curated_path.exists():
++            try:
++                with open(curated_path, "r", encoding="utf-8") as f:
++                    raw_data = json.load(f)
++                loaded_data = {
++                    "type": "FeatureCollection",
++                    "metadata": {
++                        "study_area_id": study_area_id,
++                        "data_source": "curated_fallback",
++                        "source_file": curated_path.name,
++                        "feature_count": len(raw_data.get("features", [])),
++                        "data_provenance": "Bundled curated vector geometries"
++                    },
++                    "features": [normalize_spatial_feature(feat) for feat in raw_data.get("features", [])]
++                }
++            except Exception as e:
++                print(f"[GeoDigitalTwinEngine] Error loading curated data from {curated_path}: {e}")
++                return None
++
++        if loaded_data:
++            self._geojson_cache[study_area_id] = loaded_data
++        return loaded_data
+ 
+     def get_building_features(self, study_area_id: str) -> Dict[str, Any]:
+         """Returns only building features formatted for direct deck.gl extrusion."""
+         geojson = self.get_study_area_geojson(study_area_id)
+         if not geojson:
+             return {"type": "FeatureCollection", "features": []}
+-        
++
+         buildings = [
+             f for f in geojson.get("features", [])
+             if f.get("properties", {}).get("type") == "building"
+@@ -178,16 +305,37 @@
+         """
+         Rasterizes real vector polygons into high-precision, physics-grounded microgrid layers.
+         """
+-        config = STUDY_AREA_CONFIGS.get(study_area_id, STUDY_AREA_CONFIGS["mumbai_bkc"])
++        if study_area_id not in STUDY_AREA_CONFIGS:
++            raise ValueError(f"Unsupported study_area_id: {study_area_id}")
++        if rows < 1 or cols < 1:
++            raise ValueError("rows and cols must be positive integers")
++
++        config = STUDY_AREA_CONFIGS[study_area_id]
+         bbox = custom_bbox or config["bbox"]
+         west, south, east, north = bbox
+         center_lon, center_lat = config["center"]
+         cos_lat = math.cos(math.radians(center_lat))
+ 
++        # Stable per-area random stream: the generated proxy layers must be
++        # reproducible across repeated GETs, workers, and process restarts.
++        seed_payload = f"urbancoolsim-grid-v2:{study_area_id}:{rows}:{cols}".encode("utf-8")
++        seed = int.from_bytes(hashlib.sha256(seed_payload).digest()[:8], "big", signed=False)
++        rng = np.random.default_rng(seed)
++
++        # Bounds are stored in EPSG:4326. The matrix samples this entire extent;
++        # `resolution_m` therefore depends on the requested rows/cols rather than
++        # automatically being the nominal 10 m configured target.
++        bbox_width_m = max(0.0, (east - west) * 111320.0 * cos_lat)
++        bbox_height_m = max(0.0, (north - south) * 111320.0)
++        effective_resolution_x_m = bbox_width_m / max(cols, 1)
++        effective_resolution_y_m = bbox_height_m / max(rows, 1)
++        effective_resolution_m = (effective_resolution_x_m + effective_resolution_y_m) / 2.0
++
+         # 1. 2D Coordinate Grid Setup
+-        # Row 0 is North (top of map), Row (rows-1) is South
+-        lons = np.linspace(west, east, cols)
+-        lats = np.linspace(north, south, rows)
++        lon_step = (east - west) / max(cols, 1)
++        lat_step = (north - south) / max(rows, 1)
++        lons = west + (np.arange(cols, dtype=float) + 0.5) * lon_step
++        lats = north - (np.arange(rows, dtype=float) + 0.5) * lat_step
+         lon_grid, lat_grid = np.meshgrid(lons, lats)
+         grid_points = np.column_stack([lon_grid.ravel(), lat_grid.ravel()])
+ 
+@@ -204,7 +352,7 @@
+         geojson = self.get_study_area_geojson(study_area_id)
+         features = geojson.get("features", []) if geojson else []
+ 
+-        # 2. Rasterize Vector Features
++        # 2. Rasterize Vector Features with Multi-Geometry and Bounding-Box Acceleration
+         for feat in features:
+             props = feat.get("properties", {})
+             geom = feat.get("geometry", {})
+@@ -213,89 +361,147 @@
+             gtype = geom.get("type", "")
+             coords = geom.get("coordinates", [])
+ 
++            # Extract polygons (supports Polygon and MultiPolygon)
++            if gtype == "Polygon" and len(coords) > 0:
++                polys = [coords[0]]
++            elif gtype == "MultiPolygon":
++                polys = [p[0] for p in coords if len(p) > 0]
++            else:
++                polys = []
++
++            # Extract lines (supports LineString and MultiLineString)
++            if gtype == "LineString" and len(coords) >= 2:
++                lines = [coords]
++            elif gtype == "MultiLineString":
++                lines = [line for line in coords if len(line) >= 2]
++            else:
++                lines = []
++
+             # Water Bodies
+             if ftype == "water":
+-                if gtype == "Polygon" and len(coords) > 0:
+-                    poly = coords[0]
+-                    path = mpath.Path(poly)
+-                    mask = path.contains_points(grid_points).reshape((rows, cols))
+-                    water_frac[mask] = 0.98
+-                    albedo[mask] = props.get("albedo", 0.06)
+-                    for r, c in zip(*np.where(mask)):
+-                        cell_landmarks[r][c] = fname
+-                elif gtype == "LineString" and len(coords) >= 2:
+-                    # Line water feature (river corridor)
+-                    w_m = props.get("width_m", 40.0)
+-                    for i in range(len(coords) - 1):
+-                        x1, y1 = coords[i]
+-                        x2, y2 = coords[i + 1]
+-                        for r in range(rows):
+-                            for c in range(cols):
+-                                dist = dist_point_to_segment_m(lon_grid[r, c], lat_grid[r, c], x1, y1, x2, y2, cos_lat)
+-                                if dist <= w_m / 2.0:
+-                                    frac = max(0.65, 1.0 - (dist / (w_m / 2.0)) * 0.35)
+-                                    water_frac[r, c] = max(water_frac[r, c], frac)
+-                                    albedo[r, c] = 0.06
+-                                    cell_landmarks[r][c] = fname
++                for poly in polys:
++                    if len(poly) >= 3:
++                        path = mpath.Path(poly)
++                        mask = path.contains_points(grid_points).reshape((rows, cols))
++                        water_frac[mask] = 0.98
++                        albedo[mask] = props.get("albedo", 0.06)
++                        if fname:
++                            for r, c in zip(*np.where(mask)):
++                                cell_landmarks[r][c] = fname
++                if lines:
++                    w_m = props.get("width_m", 25.0)
++                    half_w = w_m / 2.0
++                    buf_x = half_w / (111320.0 * cos_lat)
++                    buf_y = half_w / 111320.0
++                    for line in lines:
++                        for i in range(len(line) - 1):
++                            x1, y1 = line[i]
++                            x2, y2 = line[i + 1]
++                            min_x = min(x1, x2) - buf_x
++                            max_x = max(x1, x2) + buf_x
++                            min_y = min(y1, y2) - buf_y
++                            max_y = max(y1, y2) + buf_y
++                            c0 = max(0, int((min_x - west) / lon_step))
++                            c1 = min(cols, int((max_x - west) / lon_step) + 1)
++                            r0 = max(0, int((north - max_y) / lat_step))
++                            r1 = min(rows, int((north - min_y) / lat_step) + 1)
++                            if c0 >= cols or r0 >= rows or c1 <= 0 or r1 <= 0:
++                                continue
++                            for r in range(r0, r1):
++                                py = north - (r + 0.5) * lat_step
++                                for c in range(c0, c1):
++                                    px = west + (c + 0.5) * lon_step
++                                    dist = dist_point_to_segment_m(px, py, x1, y1, x2, y2, cos_lat)
++                                    if dist <= half_w:
++                                        frac = max(0.65, 1.0 - (dist / half_w) * 0.35)
++                                        water_frac[r, c] = max(water_frac[r, c], frac)
++                                        albedo[r, c] = 0.06
++                                        if fname and not cell_landmarks[r][c]:
++                                            cell_landmarks[r][c] = fname
+ 
+             # Parks & Vegetated Grounds
+             elif ftype == "park":
+-                if gtype == "Polygon" and len(coords) > 0:
+-                    poly = coords[0]
+-                    path = mpath.Path(poly)
+-                    mask = path.contains_points(grid_points).reshape((rows, cols))
+-                    vf = props.get("veg_fraction", 0.90)
+-                    ch = props.get("canopy_height", 16.0)
+-                    veg_frac[mask] = np.maximum(veg_frac[mask], vf)
+-                    canopy_height[mask] = np.maximum(canopy_height[mask], ch)
+-                    albedo[mask] = props.get("albedo", 0.24)
+-                    for r, c in zip(*np.where(mask)):
+-                        cell_landmarks[r][c] = fname
++                for poly in polys:
++                    if len(poly) >= 3:
++                        path = mpath.Path(poly)
++                        mask = path.contains_points(grid_points).reshape((rows, cols))
++                        vf = props.get("veg_fraction", 0.85)
++                        ch = props.get("canopy_height", 14.0)
++                        veg_frac[mask] = np.maximum(veg_frac[mask], vf)
++                        canopy_height[mask] = np.maximum(canopy_height[mask], ch)
++                        albedo[mask] = props.get("albedo", 0.22)
++                        if fname:
++                            for r, c in zip(*np.where(mask)):
++                                cell_landmarks[r][c] = fname
+ 
+             # Roads & Street Canyons
+             elif ftype == "road":
+-                if gtype == "LineString" and len(coords) >= 2:
+-                    width_m = props.get("width_m", 30.0)
+-                    half_w = width_m / 2.0
+-                    for i in range(len(coords) - 1):
+-                        x1, y1 = coords[i]
+-                        x2, y2 = coords[i + 1]
+-                        for r in range(rows):
+-                            for c in range(cols):
+-                                dist = dist_point_to_segment_m(lon_grid[r, c], lat_grid[r, c], x1, y1, x2, y2, cos_lat)
+-                                if dist <= half_w:
+-                                    road_mask[r, c] = 1.0
+-                                    albedo[r, c] = props.get("albedo", 0.10)
+-                                    # Road overrides water and vegetation within its corridor
+-                                    water_frac[r, c] = min(water_frac[r, c], 0.05)
+-                                    veg_frac[r, c] = min(veg_frac[r, c], 0.10)
+-                                    bldg_density[r, c] = 0.0
+-                                    if not cell_landmarks[r][c]:
+-                                        cell_landmarks[r][c] = fname
++                if lines:
++                    w_m = props.get("width_m", 12.0)
++                    half_w = w_m / 2.0
++                    buf_x = half_w / (111320.0 * cos_lat)
++                    buf_y = half_w / 111320.0
++                    for line in lines:
++                        for i in range(len(line) - 1):
++                            x1, y1 = line[i]
++                            x2, y2 = line[i + 1]
++                            min_x = min(x1, x2) - buf_x
++                            max_x = max(x1, x2) + buf_x
++                            min_y = min(y1, y2) - buf_y
++                            max_y = max(y1, y2) + buf_y
++                            c0 = max(0, int((min_x - west) / lon_step))
++                            c1 = min(cols, int((max_x - west) / lon_step) + 1)
++                            r0 = max(0, int((north - max_y) / lat_step))
++                            r1 = min(rows, int((north - min_y) / lat_step) + 1)
++                            if c0 >= cols or r0 >= rows or c1 <= 0 or r1 <= 0:
++                                continue
++                            for r in range(r0, r1):
++                                py = north - (r + 0.5) * lat_step
++                                for c in range(c0, c1):
++                                    px = west + (c + 0.5) * lon_step
++                                    dist = dist_point_to_segment_m(px, py, x1, y1, x2, y2, cos_lat)
++                                    if dist <= half_w:
++                                        road_mask[r, c] = 1.0
++                                        albedo[r, c] = props.get("albedo", 0.10)
++                                        water_frac[r, c] = min(water_frac[r, c], 0.05)
++                                        veg_frac[r, c] = min(veg_frac[r, c], 0.10)
++                                        bldg_density[r, c] = 0.0
++                                        if fname and not cell_landmarks[r][c]:
++                                            cell_landmarks[r][c] = fname
++                for poly in polys:
++                    if len(poly) >= 3:
++                        path = mpath.Path(poly)
++                        mask = path.contains_points(grid_points).reshape((rows, cols))
++                        road_mask[mask] = 1.0
++                        albedo[mask] = props.get("albedo", 0.10)
++                        water_frac[mask] = np.minimum(water_frac[mask], 0.05)
++                        veg_frac[mask] = np.minimum(veg_frac[mask], 0.10)
++                        bldg_density[mask] = 0.0
++                        if fname:
++                            for r, c in zip(*np.where(mask)):
++                                cell_landmarks[r][c] = fname
+ 
+             # Building Footprints
+             elif ftype == "building":
+-                if gtype == "Polygon" and len(coords) > 0:
+-                    poly = coords[0]
+-                    path = mpath.Path(poly)
+-                    mask = path.contains_points(grid_points).reshape((rows, cols))
+-                    bh = props.get("height", 24.0)
+-                    bd = 0.82
+-                    bldg_density[mask] = np.maximum(bldg_density[mask], bd)
+-                    bldg_height[mask] = np.maximum(bldg_height[mask], bh)
+-                    albedo[mask] = props.get("albedo", 0.19)
+-                    # Building rooftops have zero canopy unless green roof
+-                    canopy_height[mask] = 0.0
+-                    veg_frac[mask] = 0.02
+-                    water_frac[mask] = 0.0
+-                    for r, c in zip(*np.where(mask)):
+-                        cell_landmarks[r][c] = fname
++                for poly in polys:
++                    if len(poly) >= 3:
++                        path = mpath.Path(poly)
++                        mask = path.contains_points(grid_points).reshape((rows, cols))
++                        bh = props.get("height", 22.0)
++                        bd = 0.82
++                        bldg_density[mask] = np.maximum(bldg_density[mask], bd)
++                        bldg_height[mask] = np.maximum(bldg_height[mask], bh)
++                        albedo[mask] = props.get("albedo", 0.19)
++                        canopy_height[mask] = 0.0
++                        veg_frac[mask] = 0.02
++                        water_frac[mask] = 0.0
++                        if fname:
++                            for r, c in zip(*np.where(mask)):
++                                cell_landmarks[r][c] = fname
+ 
+         # 3. Avenue Street Trees (Organic verges along road corridors)
+         road_edge = (road_mask > 0.5) & (bldg_density < 0.2) & (water_frac < 0.2)
+-        # Add realistic avenue tree verges on 20% of road verges
+-        np.random.seed(42)
+-        noise = np.random.uniform(0, 1, (rows, cols))
++        noise = rng.uniform(0, 1, (rows, cols))
+         avenue_trees = road_edge & (noise > 0.65)
+         veg_frac[avenue_trees] = np.maximum(veg_frac[avenue_trees], 0.45)
+         canopy_height[avenue_trees] = np.maximum(canopy_height[avenue_trees], 12.0)
+@@ -316,18 +522,22 @@
+         
+         # Anthropogenic heat flux (Qf) from building density and traffic
+         base_qf = config["base_climate"]["q_f_wm2"]
++        activity_mask = (bldg_density > 0.01) | (road_mask > 0.01)
+         qf_anthro = np.clip(
+-            (bldg_density * base_qf * 1.35) + (road_mask * 18.0) + np.random.normal(0, 1.2, (rows, cols)),
++            (bldg_density * base_qf * 1.35) + (road_mask * 18.0) + rng.normal(0, 1.2, (rows, cols)),
+             0.0, 95.0
+         )
+-        qf_anthro = np.where(water_frac > 0.3, 0.0, qf_anthro)
+-
+-        # Population exposure density
++        # Random perturbations are applied only where the vector morphology
++        # indicates built or road activity; empty cells must not acquire random
++        # waste heat simply because the proxy model includes noise.
++        qf_anthro = np.where(activity_mask & (water_frac <= 0.3), qf_anthro, 0.0)
++
++        # Population exposure density proxy (not a census-derived population raster)
+         pop_density = np.clip(
+-            (bldg_density * 450.0) + (road_mask * 120.0) + np.random.normal(0, 8.0, (rows, cols)),
++            (bldg_density * 450.0) + (road_mask * 120.0) + rng.normal(0, 8.0, (rows, cols)),
+             0.0, 680.0
+         )
+-        pop_density = np.where(water_frac > 0.3, 0.0, pop_density)
++        pop_density = np.where(activity_mask & (water_frac <= 0.3), pop_density, 0.0)
+ 
+         # Surface emissivity
+         emissivity = np.clip(0.91 + (veg_frac * 0.06) + (water_frac * 0.07) - (bldg_density * 0.02), 0.88, 0.98)
+@@ -359,8 +569,34 @@
+         delta_water_sink = -1.0 * water_frac * 8.5
+         delta_veg_sink = -1.0 * veg_frac * 4.0
+ 
+-        base_t = np.clip(seb_t + delta_urban_canyon + delta_water_sink + delta_veg_sink, 29.5, 53.5)
+-        base_t = np.round(base_t, 2)
++        # This is a modelled reference temperature, not an observed satellite LST
++        # raster. Do not clamp the entire field to 53.5 C: the old ceiling forced
++        # most cells to exactly the same value and erased spatial contrast.
++        base_t = np.round(seb_t + delta_urban_canyon + delta_water_sink + delta_veg_sink, 2)
++
++        # The active vector dataset does not provide land-cover observations for
++        # every cell in the bbox. Keep a separate support mask so consumers can
++        # render cells backed by mapped building/road/park/water morphology and
++        # leave default-only cells transparent instead of implying equal-quality
++        # spatial evidence everywhere.
++        modelled_coverage_mask = (
++            (bldg_density > 0.01)
++            | (road_mask > 0.5)
++            | (veg_frac > 0.05)
++            | (water_frac > 0.05)
++        ).astype(np.uint8)
++
++        geo_meta = geojson.get("metadata", {}) if geojson else {}
++        active_source = geo_meta.get("data_source", "curated_fallback")
++        source_file = geo_meta.get("source_file", "")
++        feature_count = len(features)
++        class_breakdown = {
++            "building": sum(1 for f in features if f.get("properties", {}).get("type") == "building"),
++            "transport": sum(1 for f in features if f.get("properties", {}).get("type") == "road"),
++            "green_space": sum(1 for f in features if f.get("properties", {}).get("type") == "park"),
++            "water": sum(1 for f in features if f.get("properties", {}).get("type") == "water"),
++            "landuse": sum(1 for f in features if f.get("properties", {}).get("type") == "landuse"),
++        }
+ 
+         return {
+             "metadata": {
+@@ -369,8 +605,20 @@
+                 "city": config["city"],
+                 "country": config["country"],
+                 "location": f"{config['city']}, {config['country']}",
+-                "crs": config["crs"],
+-                "resolution_m": config["resolution_m"],
++                "crs": "EPSG:4326",
++                "configured_projected_crs": config["crs"],
++                "bbox_crs": "EPSG:4326",
++                "grid_coordinate_crs": "EPSG:4326",
++                "distance_method": "Local equirectangular approximation around study-area center; geometry is not reprojected to the configured UTM CRS.",
++                "resolution_m": round(effective_resolution_m, 2),
++                "effective_resolution_x_m": round(effective_resolution_x_m, 2),
++                "effective_resolution_y_m": round(effective_resolution_y_m, 2),
++                "nominal_resolution_m": config["resolution_m"],
++                "resolution_note": (
++                    f"Nominal target resolution is {config['resolution_m']} m. Effective cell spacing across "
++                    f"this {rows}x{cols} grid is {round(effective_resolution_x_m, 2)} m (lon) x "
++                    f"{round(effective_resolution_y_m, 2)} m (lat) per cell (nominal vs effective distinction)."
++                ),
+                 "rows": rows,
+                 "cols": cols,
+                 "total_cells": rows * cols,
+@@ -379,12 +627,45 @@
+                 "center_lon": center_lon,
+                 "bbox": bbox,
+                 "base_climate": clim,
+-                "is_synthetic": False,
+-                "tag": "GEOREFERENCED SATELLITE DIGITAL TWIN",
++                # Provenance and active vector data tracking
++                "active_data_source": active_source,
++                "source_file": source_file,
++                "vector_feature_count": feature_count,
++                "features_by_class": class_breakdown,
++                "data_provenance": geo_meta.get("data_provenance", "Bundled curated vector geometries"),
++                "data_license": "ODbL-1.0 (© OpenStreetMap contributors)" if active_source == "live_osm_acquired" else "Curated project geometries",
++                "is_synthetic": True,
++                "has_observed_satellite_lst": False,
++                "contains_modelled_layers": True,
++                "geometry_is_georeferenced": True,
++                "coverage_note": "The modelled_coverage_mask marks cells supported by a rasterized building, road, park/vegetation, or water feature. Cells outside that mask use default physical assumptions and should be rendered as unsupported/transparent when visualizing spatial coverage.",
++                "tag": "GEOREFERENCED VECTOR + SEB-MODELLED DIGITAL TWIN",
++                "provenance_note": (
++                    f"This grid path rasterizes live OpenStreetMap Overpass physical vector features ({feature_count} features from {source_file}) "
++                    f"and computes thermal values with the SEB solver and empirical microclimate corrections."
++                    if active_source == "live_osm_acquired" else
++                    f"This grid path rasterizes bundled curated GeoJSON features ({feature_count} features from {source_file}) "
++                    f"and computes thermal values with the SEB solver and empirical microclimate corrections."
++                ),
++                "layer_provenance": {
++                    "building_density": f"Rasterized from {class_breakdown['building']} real building footprints ({active_source})",
++                    "building_height": f"Building heights from {active_source} OSM tags/attributes; zero where no building is rasterized",
++                    "veg_fraction": f"Rasterized from {class_breakdown['green_space']} parks/green features plus avenue-tree verges",
++                    "water_fraction": f"Rasterized from {class_breakdown['water']} water bodies/corridors ({active_source})",
++                    "albedo": "Feature attributes and configured defaults; not a Sentinel-2-derived raster in this path",
++                    "baseline_temperature_c": "Modelled from SEB temperature plus urban-canyon, water-sink, and vegetation corrections; not satellite-observed",
++                    "seb_temperature_c": "Modelled by the Surface Energy Balance solver",
++                    "modelled_coverage_mask": "Binary support mask: 1 where mapped building/road/park/water morphology contributes; 0 where only default surface assumptions are available",
++                    "population_density": "Building/road activity proxy with deterministic perturbation; zero outside mapped built/road activity; not a WorldPop raster",
++                    "anthropogenic_heat_qf": "Building/road activity proxy with deterministic perturbation; zero outside mapped built/road activity; not VIIRS-derived",
++                    "surface_emissivity": "Parameterized from vegetation, water, and building-density layers",
++                    "sky_view_factor": "Derived from building height and an assumed canyon width",
++                    "lai": "Derived from vegetation fraction and canopy height"
++                },
+                 "sources": [
+-                    "OpenStreetMap Vector Building Footprints and Corridors (GeoJSON)",
+-                    "Deterministic Surface Energy Balance (SEB) Thermodynamics",
+-                    "Empirical Microclimate Morphology & Surface Parameterization"
++                    f"Active physical vectors: {active_source} ({source_file}, {feature_count} features)",
++                    "Surface Energy Balance (SEB) thermodynamics",
++                    "Empirical microclimate morphology and surface parameterization"
+                 ]
+             },
+             "layers": {
+@@ -395,6 +676,7 @@
+                 "albedo": np.round(albedo, 3).tolist(),
+                 "baseline_temperature_c": base_t.tolist(),
+                 "seb_temperature_c": seb_t.tolist(),
++                "modelled_coverage_mask": modelled_coverage_mask.tolist(),
+                 "canopy_height": np.round(canopy_height, 1).tolist(),
+                 "population_density": np.round(pop_density, 1).tolist(),
+                 "anthropogenic_heat_qf": np.round(qf_anthro, 1).tolist(),
+--- a/backend/app/schemas/schemas.py
++++ b/backend/app/schemas/schemas.py
+@@ -1,6 +1,156 @@
+-from typing import Optional, List, Dict, Any
+-from pydantic import BaseModel, EmailStr, Field, ConfigDict, model_validator
++from typing import Optional, List, Dict, Any, Literal
++import math
++from pydantic import BaseModel, EmailStr, Field, ConfigDict, model_validator, field_validator
+ from datetime import datetime
++
++
++# Canonical Study Area Identifier
++StudyAreaId = Literal[
++    "delhi_cp",
++    "mumbai_bkc",
++    "singapore_marina",
++    "phoenix_downtown",
++    "tokyo_shinjuku",
++]
++
++
++# --- Public Digital Twin API schemas ---
++class ClimateBaseline(BaseModel):
++    air_temp_c: float
++    solar_rad_wm2: float
++    rel_humidity: float
++    wind_speed_ms: float
++    q_f_wm2: float
++
++
++class StudyAreaMetadataItem(BaseModel):
++    """Metadata advertised by GET /api/v1/digital-twin/study-areas."""
++
++    id: str
++    name: str
++    city: str
++    country: str
++    # `crs` remains for compatibility and is the configured projected CRS.
++    crs: str
++    configured_projected_crs: Optional[str] = None
++    bbox_crs: Optional[str] = None
++    grid_coordinate_crs: Optional[str] = None
++    resolution_m: float
++    nominal_resolution_m: Optional[float] = None
++    resolution_note: Optional[str] = None
++    typology: str
++    description: str
++    center_lat: float
++    center_lon: float
++    base_climate: ClimateBaseline
++
++
++GridMatrix = List[List[float]]
++GridTextMatrix = List[List[str]]
++
++
++class DigitalTwinGridLayers(BaseModel):
++    """Numerical layers returned for a single sampled grid."""
++
++    building_density: GridMatrix
++    building_height: GridMatrix
++    veg_fraction: GridMatrix
++    water_fraction: GridMatrix
++    albedo: GridMatrix
++    baseline_temperature_c: GridMatrix
++    seb_temperature_c: GridMatrix
++    modelled_coverage_mask: GridMatrix
++    canopy_height: GridMatrix
++    population_density: GridMatrix
++    anthropogenic_heat_qf: GridMatrix
++    surface_emissivity: GridMatrix
++    sky_view_factor: GridMatrix
++    lai: GridMatrix
++
++
++class DigitalTwinGridMetadata(BaseModel):
++    """Spatial reference, effective resolution and data-provenance metadata."""
++
++    study_area_id: str
++    name: str
++    city: str
++    country: str
++    location: str
++    crs: str
++    configured_projected_crs: Optional[str] = None
++    bbox_crs: Optional[str] = None
++    grid_coordinate_crs: Optional[str] = None
++    distance_method: Optional[str] = None
++    resolution_m: float
++    effective_resolution_x_m: Optional[float] = None
++    effective_resolution_y_m: Optional[float] = None
++    nominal_resolution_m: Optional[float] = None
++    resolution_note: Optional[str] = None
++    rows: int
++    cols: int
++    total_cells: int
++    typology: str
++    center_lat: float
++    center_lon: float
++    bbox: List[float]
++    base_climate: Dict[str, float]
++    is_synthetic: bool
++    has_observed_satellite_lst: Optional[bool] = None
++    contains_modelled_layers: Optional[bool] = None
++    geometry_is_georeferenced: Optional[bool] = None
++    coverage_note: Optional[str] = None
++    tag: str
++    provenance_note: Optional[str] = None
++    layer_provenance: Optional[Dict[str, str]] = None
++    sources: List[str]
++
++    model_config = ConfigDict(extra="allow")
++
++    @field_validator("bbox")
++    @classmethod
++    def validate_bbox(cls, value: List[float]) -> List[float]:
++        if len(value) != 4:
++            raise ValueError("bbox must contain [west, south, east, north]")
++        west, south, east, north = value
++        if not all(math.isfinite(v) for v in value):
++            raise ValueError("bbox coordinates must be finite")
++        if west >= east or south >= north:
++            raise ValueError("bbox must satisfy west < east and south < north")
++        return value
++
++    @model_validator(mode="after")
++    def validate_grid_metadata(self):
++        if self.rows < 1 or self.cols < 1:
++            raise ValueError("rows and cols must be positive")
++        if self.total_cells != self.rows * self.cols:
++            raise ValueError("total_cells must equal rows * cols")
++        for name in ("resolution_m", "effective_resolution_x_m", "effective_resolution_y_m", "nominal_resolution_m"):
++            value = getattr(self, name)
++            if value is not None and (not math.isfinite(value) or value <= 0):
++                raise ValueError(f"{name} must be finite and positive")
++        return self
++
++
++class DigitalTwinGridResponse(BaseModel):
++    """Response contract for GET /api/v1/digital-twin/grid."""
++
++    metadata: DigitalTwinGridMetadata
++    layers: DigitalTwinGridLayers
++    landmarks: Optional[GridTextMatrix] = None
++
++    @model_validator(mode="after")
++    def validate_layer_dimensions(self):
++        rows = self.metadata.rows
++        cols = self.metadata.cols
++        for layer_name, matrix in self.layers.model_dump().items():
++            if len(matrix) != rows or any(len(row) != cols for row in matrix):
++                raise ValueError(f"layers.{layer_name} must have shape ({rows}, {cols})")
++            if any(not __import__("math").isfinite(float(value)) for row in matrix for value in row):
++                raise ValueError(f"layers.{layer_name} must contain only finite values")
++        mask = self.layers.model_dump()["modelled_coverage_mask"]
++        if any(value not in (0, 1, 0.0, 1.0) for row in mask for value in row):
++            raise ValueError("modelled_coverage_mask must be binary")
++        return self
+ 
+ # --- Auth Schemas ---
+ class UserCreate(BaseModel):
+@@ -87,9 +237,12 @@
+ # --- Physics Simulation Request & Result Schemas ---
+ class PhysicsSimulationRequest(BaseModel):
+     scenario_id: str
+-    grid_resolution_m: float = Field(default=10.0, ge=1.0, le=100.0)
+-    rows: int = Field(default=50, ge=10, le=1000)
+-    cols: int = Field(default=50, ge=10, le=1000)
++    grid_resolution_m: float = Field(
++        default=10.0, ge=1.0, le=100.0,
++        description="Nominal target only. Current grid samples the configured extent; actual spacing is returned in provenance.",
++    )
++    rows: int = Field(default=50, ge=10, le=100, description="Grid rows; shared Digital Twin limit 10–100.")
++    cols: int = Field(default=50, ge=10, le=100, description="Grid columns; shared Digital Twin limit 10–100.")
+     air_temperature_c: float = Field(default=38.5, ge=-20.0, le=65.0)       # Ambient air temp (°C)
+     relative_humidity: float = Field(default=0.45, ge=0.01, le=1.0)          # Relative humidity (0.01 - 1.0)
+     wind_speed_ms: float = Field(default=2.5, ge=0.1, le=50.0)               # Wind speed m/s (min 0.1 to avoid zero division)
+@@ -116,7 +269,7 @@
+ 
+ # --- Optimization Schemas ---
+ class OptimizationRequest(BaseModel):
+-    study_area_id: str = "delhi_cp"
++    study_area_id: StudyAreaId = "delhi_cp"
+     max_budget_usd: float = Field(default=500000.0, ge=1000.0, le=100000000.0)
+     max_water_demand_m3: float = Field(default=10000.0, ge=0.0, le=1000000.0)
+     max_land_area_m2: float = Field(default=50000.0, ge=0.0, le=10000000.0)
+@@ -154,6 +307,9 @@
+ class OptimizationResponse(BaseModel):
+     id: str
+     name: str
++    study_area_id: Optional[str] = None
++    district_area_m2: Optional[float] = None
++    building_footprint_m2: Optional[float] = None
+     objectives: List[str]
+     constraints: Dict[str, Any]
+     weights: Optional[Dict[str, float]] = None
+@@ -199,15 +355,26 @@
+         return data
+ 
+ # --- Validation Schemas ---
++class ValidationScatterPoint(BaseModel):
++    cell_index: int
++    row: int
++    col: int
++    benchmark_temperature_c: float
++    simulated_temperature_c: float
++
+ class ValidationResponse(BaseModel):
+     id: str
+     name: str
++    study_area_id: str
+     observed_source: str
+     simulated_scenario_id: Optional[str]
+     mae: float
+     rmse: float
+     r2: float
++    mean_bias: float
+     spatial_error_summary: Dict[str, Any]
++    scatter_points: List[ValidationScatterPoint]
++    provenance: Dict[str, Any]
+     calibration_status: str
+     created_at: datetime
+ 
+--- a/backend/app/api/optimization_router.py
++++ b/backend/app/api/optimization_router.py
+@@ -76,6 +76,9 @@
+     return OptimizationResponse(
+         id=run_db.id,
+         name=run_db.name,
++        study_area_id=req.study_area_id,
++        district_area_m2=res.get("district_area_m2"),
++        building_footprint_m2=res.get("building_footprint_m2"),
+         objectives=run_db.objectives,
+         constraints=run_db.constraints,
+         weights=res.get("weights"),
+--- a/backend/app/optimization/pareto_optimizer.py
++++ b/backend/app/optimization/pareto_optimizer.py
+@@ -10,6 +10,7 @@
+ from app.ml.surrogate import SurrogateModelPipeline
+ from app.interventions.engine import InterventionEngine
+ from app.physics.energy_balance import EnergyBalanceSolver
++from app.spatial.geo_digital_twin import STUDY_AREA_CONFIGS
+ 
+ class UrbanCoolingOptimizationProblem(ElementwiseProblem):
+     """
+@@ -27,8 +28,11 @@
+         max_budget_usd: float = 500000.0,
+         max_water_m3: float = 10000.0,
+         max_land_m2: float = 50000.0,
+-        baseline_features: Dict[str, float] = None
++        baseline_features: Optional[Dict[str, float]] = None,
++        study_area_m2: Optional[float] = None
+     ):
++        if study_area_m2 is None or study_area_m2 <= 0:
++            raise ValueError("study_area_m2 must be explicitly provided from the configured study area extent; hardcoded defaults are disabled.")
+         super().__init__(
+             n_var=4,
+             n_obj=3,          # f1: -Delta_T (max cooling), f2: cost ($), f3: water (m³)
+@@ -40,6 +44,7 @@
+         self.max_budget_usd = max_budget_usd
+         self.max_water_m3 = max_water_m3
+         self.max_land_m2 = max_land_m2
++        self.study_area_m2 = float(study_area_m2)
+         self.base_feat = baseline_features or {
+             "baseline_albedo": 0.18,
+             "baseline_veg_frac": 0.12,
+@@ -70,7 +75,10 @@
+         predicted_delta_T = self.surrogate.predict_delta_t(feat)
+         
+         # Resource budget evaluation
+-        resource = InterventionEngine.calculate_resource_budget(feat)
++        bldg_density = self.base_feat.get("building_density", 0.40)
++        resource = InterventionEngine.calculate_resource_budget(
++            feat, study_area_m2=self.study_area_m2, avg_bldg_density=bldg_density
++        )
+         cost = resource["total_cost_usd"]
+         water = resource["water_demand_m3"]
+         land = resource["land_area_m2"]
+@@ -117,7 +125,12 @@
+         "phoenix_downtown": {"air_temp_c": 45.0, "solar_rad": 1020.0, "wind_speed": 2.0, "q_f": 55.0, "base_albedo": 0.16, "veg": 0.05},
+         "tokyo_shinjuku": {"air_temp_c": 35.5, "solar_rad": 860.0, "wind_speed": 2.4, "q_f": 65.0, "base_albedo": 0.16, "veg": 0.08}
+     }
+-    c_info = climates.get(study_area_id, climates["delhi_cp"])
++    if study_area_id not in climates or study_area_id not in STUDY_AREA_CONFIGS:
++        raise ValueError(
++            f"Unsupported study_area_id: '{study_area_id}'. Supported areas are: "
++            f"{list(STUDY_AREA_CONFIGS.keys())}. Unregistered study areas are rejected to prevent silent fallbacks."
++        )
++    c_info = climates[study_area_id]
+     
+     base_feat = {
+         "baseline_albedo": c_info["base_albedo"],
+@@ -132,12 +145,22 @@
+         "wetness_factor": 0.5
+     }
+     
++    sa_config = STUDY_AREA_CONFIGS[study_area_id]
++    w, s, e, n = sa_config["bbox"]
++    lat_scale = np.cos(np.deg2rad(sa_config["center"][1]))
++    width_m = max(100.0, (e - w) * 111320.0 * lat_scale)
++    height_m = max(100.0, (n - s) * 111320.0)
++    total_district_m2 = round(float(width_m * height_m), 1)
++    bldg_density = float(base_feat.get("building_density", 0.45))
++    bldg_footprint_m2 = round(total_district_m2 * bldg_density, 1)
++
+     problem = UrbanCoolingOptimizationProblem(
+         surrogate=surrogate,
+         max_budget_usd=max_budget_usd,
+         max_water_m3=max_water_m3,
+         max_land_m2=max_land_m2,
+-        baseline_features=base_feat
++        baseline_features=base_feat,
++        study_area_m2=total_district_m2
+     )
+     
+     algorithm = NSGA2(
+@@ -193,9 +216,6 @@
+     w_water = weight_water / total_w
+     w_energy = weight_energy / total_w
+ 
+-    bldg_footprint_m2 = 112500.0  # 45% of 250,000 m2 district
+-    total_district_m2 = 250000.0
+-
+     for idx, vars_opt in enumerate(X_candidates):
+         green_roof, cool_roof, tree_canopy, water_feat = vars_opt[0], vars_opt[1], vars_opt[2], vars_opt[3]
+         
+@@ -208,7 +228,9 @@
+             "water_feature_fraction": water_feat
+         })
+         surrogate_delta_T = surrogate.predict_delta_t(feat)
+-        resource = InterventionEngine.calculate_resource_budget(feat)
++        resource = InterventionEngine.calculate_resource_budget(
++            feat, study_area_m2=total_district_m2, avg_bldg_density=bldg_density
++        )
+         cost = resource["total_cost_usd"]
+         water = resource["water_demand_m3"]
+         
+@@ -248,7 +270,7 @@
+         norm_cost = max(0.0, 1.0 - (cost / max(1.0, max_budget_usd)))
+         norm_pop = min(1.0, (physics_validated_delta_T * 1.2) / 4.0)
+         norm_water = max(0.0, 1.0 - (water / max(1.0, max_water_m3)))
+-        norm_energy = min(1.0, hvac_kwh_saved / 250000.0)
++        norm_energy = min(1.0, hvac_kwh_saved / max(1.0, total_district_m2))
+         
+         composite_score = round((
+             w_cool * norm_cooling +
+@@ -310,5 +332,8 @@
+         "pareto_solutions": pareto_solutions,
+         "recommended_solution": recommended,
+         "physics_validated": bool(recommended.get("physics_validated", False)),
+-        "physics_validation_error_c": recommended.get("validation_error", 0.0)
++        "physics_validation_error_c": recommended.get("validation_error", 0.0),
++        "study_area_id": study_area_id,
++        "district_area_m2": total_district_m2,
++        "building_footprint_m2": bldg_footprint_m2
+     }
+--- a/backend/app/interventions/engine.py
++++ b/backend/app/interventions/engine.py
+@@ -1,4 +1,4 @@
+-from typing import Dict, Any
++from typing import Dict, Any, Optional
+ 
+ class InterventionEngine:
+     """
+@@ -22,12 +22,14 @@
+     def calculate_resource_budget(
+         self,
+         params: Dict[str, float],
+-        study_area_m2: float = 250000.0, # e.g. 50x50 cells of 10m = 250,000 m²
++        study_area_m2: Optional[float] = None,
+         avg_bldg_density: float = 0.40
+     ) -> Dict[str, float]:
+         """
+         Calculates implementation cost ($), water demand (m³/yr), and land area (m²).
+         """
++        if study_area_m2 is None or study_area_m2 <= 0:
++            raise ValueError("study_area_m2 must be explicitly provided from the configured study area extent; hardcoded defaults are disabled.")
+         bldg_area = study_area_m2 * avg_bldg_density
+         ground_area = study_area_m2 * (1.0 - avg_bldg_density)
+         
+--- a/backend/tests/test_c2_grid_contract.py
++++ b/backend/tests/test_c2_grid_contract.py
+@@ -0,0 +1,225 @@
++"""Regression tests for Checkpoint C2 grid contract interoperability."""
++
++import ast
++from pathlib import Path
++
++import numpy as np
++import pytest
++from pydantic import ValidationError
++
++from app.schemas.schemas import DigitalTwinGridResponse, PhysicsSimulationRequest
++from app.spatial.geo_digital_twin import STUDY_AREA_CONFIGS, geo_twin_engine
++
++
++def generate_study_area_grid(study_area_id, rows, cols):
++    return geo_twin_engine.generate_microgrid(study_area_id, rows=rows, cols=cols)
++
++
++def read_public_study_area_metadata():
++    """Read the literal router metadata without importing app/auth dependencies."""
++    router_path = Path(__file__).parents[1] / "app" / "api" / "digital_twin_router.py"
++    tree = ast.parse(router_path.read_text(encoding="utf-8"))
++    for node in tree.body:
++        if isinstance(node, ast.Assign) and any(
++            isinstance(target, ast.Name) and target.id == "STUDY_AREAS_METADATA"
++            for target in node.targets
++        ):
++            return ast.literal_eval(node.value)
++    raise AssertionError("STUDY_AREAS_METADATA literal not found")
++
++
++AREA_IDS = (
++    "delhi_cp",
++    "mumbai_bkc",
++    "singapore_marina",
++    "phoenix_downtown",
++    "tokyo_shinjuku",
++)
++
++
++def test_study_area_public_metadata_has_crs_and_resolution_parity():
++    records = {item["id"]: item for item in read_public_study_area_metadata()}
++    assert set(records) == set(AREA_IDS)
++    for area_id in AREA_IDS:
++        item = records[area_id]
++        config = STUDY_AREA_CONFIGS[area_id]
++        assert item["configured_projected_crs"] == config["crs"]
++        assert item["bbox_crs"] == "EPSG:4326"
++        assert item["grid_coordinate_crs"] == "EPSG:4326"
++        assert item["nominal_resolution_m"] == config["resolution_m"]
++        assert item["resolution_note"]
++
++
++@pytest.mark.parametrize("rows,cols", [(10, 10), (10, 20), (40, 40), (50, 50), (100, 100)])
++def test_grid_dimensions_and_all_layer_shapes_follow_requested_contract(rows, cols):
++    grid = generate_study_area_grid("delhi_cp", rows=rows, cols=cols)
++    response = DigitalTwinGridResponse.model_validate(grid)
++    assert response.metadata.rows == rows
++    assert response.metadata.cols == cols
++    assert response.metadata.total_cells == rows * cols
++    for name, values in response.layers.model_dump().items():
++        arr = np.asarray(values)
++        assert arr.shape == (rows, cols), name
++        assert np.isfinite(arr).all(), name
++    mask = np.asarray(response.layers.modelled_coverage_mask)
++    assert set(np.unique(mask)).issubset({0, 1})
++
++
++def test_grid_schema_rejects_invalid_bbox_and_cell_count():
++    grid = generate_study_area_grid("delhi_cp", rows=10, cols=10)
++    malformed_bbox = {**grid, "metadata": {**grid["metadata"], "bbox": [1.0, 2.0, 3.0]}}
++    with pytest.raises(ValidationError, match="bbox must contain"):
++        DigitalTwinGridResponse.model_validate(malformed_bbox)
++
++    malformed_count = {**grid, "metadata": {**grid["metadata"], "total_cells": 99}}
++    with pytest.raises(ValidationError, match="total_cells must equal"):
++        DigitalTwinGridResponse.model_validate(malformed_count)
++
++
++def test_thermal_request_uses_shared_grid_dimension_limits():
++    base = {
++        "scenario_id": "test-scenario",
++        "rows": 10,
++        "cols": 100,
++        "grid_resolution_m": 10,
++    }
++    assert PhysicsSimulationRequest.model_validate(base).rows == 10
++    with pytest.raises(ValidationError):
++        PhysicsSimulationRequest.model_validate({**base, "rows": 101})
++    with pytest.raises(ValidationError):
++        PhysicsSimulationRequest.model_validate({**base, "cols": 1000})
++
++
++def test_grid_engine_rejects_non_finite_or_invalid_bbox_through_response_contract():
++    grid = geo_twin_engine.generate_microgrid("delhi_cp", rows=10, cols=10)
++    malformed = {**grid, "metadata": {**grid["metadata"], "bbox": [77.2, 28.6, 77.1, 28.7]}}
++    with pytest.raises(ValidationError, match="west < east"):
++        DigitalTwinGridResponse.model_validate(malformed)
++
++
++def test_inspect_cell_route_respects_custom_dimensions_and_validates_bounds():
++    from fastapi.testclient import TestClient
++    from app.main import app
++
++    client = TestClient(app)
++    # Valid cell on custom 40x40 grid for Singapore
++    resp = client.get("/api/v1/digital-twin/inspect-cell?study_area_id=singapore_marina&row=15&col=20&rows=40&cols=40")
++    assert resp.status_code == 200
++    data = resp.json()
++    assert data["study_area_id"] == "singapore_marina"
++    assert data["grid"]["rows"] == 40
++    assert data["grid"]["cols"] == 40
++    assert data["grid"]["total_cells"] == 1600
++    assert data["grid"]["crs"] == "EPSG:4326"
++    assert data["grid"]["bbox"] == [103.8495, 1.2780, 103.8635, 1.2914]
++    assert data["grid"]["effective_resolution_x_m"] > 0
++    assert data["grid"]["effective_resolution_y_m"] > 0
++    assert "is_supported_by_mapped_features" in data
++
++    # Out-of-bounds row on 40x40 grid must return 422
++    resp_err = client.get("/api/v1/digital-twin/inspect-cell?study_area_id=singapore_marina&row=40&col=20&rows=40&cols=40")
++    assert resp_err.status_code == 422
++    assert "Cell index out of bounds" in resp_err.json()["detail"]
++
++
++@pytest.mark.parametrize("area_id", AREA_IDS)
++def test_optimizer_derives_district_area_from_study_area_config(area_id):
++    from app.optimization.pareto_optimizer import run_multi_objective_optimization
++
++    config = STUDY_AREA_CONFIGS[area_id]
++    w, s, e, n = config["bbox"]
++    lat_scale = np.cos(np.deg2rad(config["center"][1]))
++    expected_width = (e - w) * 111320.0 * lat_scale
++    expected_height = (n - s) * 111320.0
++    expected_area = round(float(expected_width * expected_height), 1)
++
++    opt_res = run_multi_objective_optimization(
++        study_area_id=area_id,
++        max_budget_usd=200000.0,
++        pop_size=10,
++        n_gen=2
++    )
++    assert opt_res["study_area_id"] == area_id
++    assert opt_res["district_area_m2"] == expected_area
++    rec = opt_res["recommended_solution"]
++    assert "solution_id" in rec
++    assert rec["physics_validated"] is True
++
++
++@pytest.mark.parametrize("area_id, min_expected_features, min_expected_bldgs", [
++    ("delhi_cp", 1500, 400),
++    ("mumbai_bkc", 900, 250),
++    ("singapore_marina", 2000, 240),
++    ("phoenix_downtown", 2800, 390),
++    ("tokyo_shinjuku", 6000, 2400),
++])
++def test_digital_twin_actively_loads_live_acquired_osm_features(area_id, min_expected_features, min_expected_bldgs):
++    """Ensures the digital twin engine actively loads real Overpass OSM data, not old curated mock files."""
++    grid = geo_twin_engine.generate_microgrid(area_id, rows=50, cols=50)
++    meta = grid["metadata"]
++    assert meta["active_data_source"] == "live_osm_acquired"
++    assert meta["vector_feature_count"] >= min_expected_features
++    assert meta["features_by_class"]["building"] >= min_expected_bldgs
++    assert meta["source_file"] == f"{area_id}_features_clipped.geojson"
++    assert "OpenStreetMap" in meta["data_provenance"]
++    assert "ODbL" in meta["data_license"]
++
++    # Verify building extrusion endpoint returns matching real buildings
++    bldgs = geo_twin_engine.get_building_features(area_id)
++    assert len(bldgs["features"]) >= min_expected_bldgs
++    for b in bldgs["features"][:50]:
++        assert b["geometry"]["type"] in ("Polygon", "MultiPolygon")
++        assert b["properties"]["height"] > 0.0
++
++
++def test_optimization_endpoint_rejects_unsupported_study_area_with_422():
++    """Ensures API boundary rejects unsupported study areas with HTTP 422 Unprocessable Entity."""
++    from fastapi.testclient import TestClient
++    from app.main import app
++
++    client = TestClient(app)
++    bad_payloads = [
++        {"study_area_id": "unsupported_city"},
++        {"study_area_id": "atlantis"},
++        {"study_area_id": "delhi"},
++        {"study_area_id": ""},
++    ]
++    for p in bad_payloads:
++        resp = client.post("/api/v1/optimization/run", json=p)
++        assert resp.status_code == 422, f"Expected 422 for {p}, got {resp.status_code}"
++
++
++def test_optimizer_raises_value_error_without_silent_delhi_fallback():
++    """Ensures direct optimizer execution rejects unknown area IDs instead of silently using Delhi climate."""
++    from app.optimization.pareto_optimizer import run_multi_objective_optimization
++
++    with pytest.raises(ValueError, match="Unsupported study_area_id"):
++        run_multi_objective_optimization(study_area_id="unknown_area", pop_size=5, n_gen=2)
++
++
++def test_intervention_engine_requires_explicit_study_area_m2():
++    """Ensures InterventionEngine refuses default 250000 m² and requires explicit study_area_m2."""
++    from app.interventions.engine import InterventionEngine
++
++    with pytest.raises(ValueError, match="study_area_m2 must be explicitly provided"):
++        InterventionEngine.calculate_resource_budget({}, study_area_m2=None)
++
++    with pytest.raises(ValueError, match="study_area_m2 must be explicitly provided"):
++        InterventionEngine.calculate_resource_budget({}, study_area_m2=0.0)
++
++
++def test_nominal_vs_effective_resolution_distinction():
++    """Verifies that nominal target resolution (10m) is distinguished from effective cell spacing."""
++    grid_40 = geo_twin_engine.generate_microgrid("singapore_marina", rows=40, cols=40)
++    meta_40 = grid_40["metadata"]
++    assert meta_40["nominal_resolution_m"] == 10.0
++    # On Singapore's ~1558m extent, 40 cells yields ~38.95m
++    assert 35.0 <= meta_40["effective_resolution_x_m"] <= 42.0
++    assert 35.0 <= meta_40["effective_resolution_y_m"] <= 42.0
++    assert "nominal vs effective distinction" in meta_40["resolution_note"]
++
++    grid_80 = geo_twin_engine.generate_microgrid("singapore_marina", rows=80, cols=80)
++    meta_80 = grid_80["metadata"]
++    assert meta_80["nominal_resolution_m"] == 10.0
++    assert 17.0 <= meta_80["effective_resolution_x_m"] <= 21.0
++
+--- a/backend/tests/test_backend.py
++++ b/backend/tests/test_backend.py
+@@ -49,6 +49,7 @@
+ 
+ def test_physics_energy_balance_solver():
+     solver = EnergyBalanceSolver(solar_rad=850.0, air_temp_c=38.5, rel_humidity=0.45, wind_speed=2.5)
++    assert 0.0 < solver.epsilon_atm <= 1.0, "Atmospheric emissivity must be a physical fraction"
+     
+     # Solve cell equilibrium for baseline built environment
+     base_res = solver.solve_cell_equilibrium(
+@@ -129,8 +130,9 @@
+     
+     # Verify microgrid for Mumbai BKC
+     grid = geo_twin_engine.generate_microgrid("mumbai_bkc", 50, 50)
+-    assert grid["metadata"]["is_synthetic"] is False
+-    assert grid["metadata"]["tag"] == "GEOREFERENCED SATELLITE DIGITAL TWIN"
++    assert grid["metadata"]["is_synthetic"] is True
++    assert grid["metadata"]["tag"] == "GEOREFERENCED VECTOR + SEB-MODELLED DIGITAL TWIN"
++    assert grid["metadata"]["has_observed_satellite_lst"] is False
+     assert "layers" in grid
+     layers = grid["layers"]
+     
+@@ -139,7 +141,9 @@
+     b = np.array(layers["building_density"])
+     v = np.array(layers["veg_fraction"])
+     
+-    assert 28.0 <= t.min() and t.max() <= 55.0, "Temperatures must fall in valid physical bounds"
++    assert np.isfinite(t).all(), "Modelled temperatures must be finite"
++    assert 0.0 < t.min() and t.max() < 85.0, "Modelled temperatures must remain within broad safety bounds"
++    assert np.count_nonzero(np.isclose(t, 53.5)) < 0.10 * t.size, "Modelled temperatures must not be artificially flattened at 53.5 C"
+     assert np.sum(w > 0.5) > 0, "Mithi river cells must be rasterized"
+     assert np.sum(b > 0.5) > 0, "Commercial building complexes must be rasterized"
+     assert np.sum(v > 0.5) > 0, "Jio Garden / Parks must be rasterized"
+@@ -152,18 +156,19 @@
+     assert response.status_code == 200
+     data = response.json()
+     assert data["type"] == "FeatureCollection"
+-    assert len(data["features"]) >= 10
++    # Live OSM data provides 275 building footprints in Mumbai BKC
++    assert len(data["features"]) >= 100
+     names = [f["properties"]["name"] for f in data["features"]]
+-    assert any("Bharat Diamond Bourse" in n for n in names)
+-    assert any("Jio World Convention" in n for n in names)
++    assert any("Jio World" in n for n in names)
++    assert any("Raheja" in n or "Bank" in n or "ICICI" in n for n in names)
+     for feat in data["features"]:
+-        assert feat["geometry"]["type"] == "Polygon"
++        assert feat["geometry"]["type"] in ("Polygon", "MultiPolygon")
+         assert feat["properties"]["height"] > 0
+ 
+ 
+ def test_digital_twin_inspect_cell():
+-    # Test cell inspection with landmark detection
+-    response = client.get("/api/v1/digital-twin/inspect-cell?study_area_id=mumbai_bkc&row=25&col=25")
++    # Test cell inspection with landmark detection on a cell with mapped infrastructure
++    response = client.get("/api/v1/digital-twin/inspect-cell?study_area_id=mumbai_bkc&row=0&col=0")
+     assert response.status_code == 200
+     data = response.json()
+     assert "baseline_temperature_c" in data
+@@ -171,3 +176,7 @@
+     assert data["landmark_name"] is not None
+     assert "recommended_intervention" in data
+     assert len(data["recommended_intervention"]) > 10
++
++    # Verify out of bounds check continues to work
++    oob = client.get("/api/v1/digital-twin/inspect-cell?study_area_id=mumbai_bkc&row=99&col=99&rows=50&cols=50")
++    assert oob.status_code == 422
+--- a/frontend/src/lib/api.ts
++++ b/frontend/src/lib/api.ts
+@@ -28,7 +28,22 @@
+     country?: string;
+     location: string;
+     crs: string;
++    configured_projected_crs?: string;
++    distance_method?: string;
++    bbox?: number[];
++    bbox_crs?: string;
++    grid_coordinate_crs?: string;
+     resolution_m: number;
++    effective_resolution_x_m?: number;
++    effective_resolution_y_m?: number;
++    nominal_resolution_m?: number;
++    resolution_note?: string;
++    has_observed_satellite_lst?: boolean;
++    contains_modelled_layers?: boolean;
++    geometry_is_georeferenced?: boolean;
++    coverage_note?: string;
++    provenance_note?: string;
++    layer_provenance?: Record<string, string>;
+     rows: number;
+     cols: number;
+     total_cells: number;
+@@ -51,6 +66,8 @@
+     population_density?: number[][];
+     anthropogenic_heat_qf?: number[][];
+     surface_emissivity?: number[][];
++    seb_temperature_c?: number[][];
++    modelled_coverage_mask?: number[][];
+     sky_view_factor?: number[][];
+     lai?: number[][];
+   };
+@@ -184,14 +201,34 @@
+   nighttime_cooling_c: number;
+ }
+ 
++export interface ValidationScatterPoint {
++  cell_index: number;
++  row: number;
++  col: number;
++  benchmark_temperature_c: number;
++  simulated_temperature_c: number;
++}
++
+ export interface ValidationResponse {
+   id: string;
+   name: string;
++  study_area_id: string;
+   observed_source: string;
++  simulated_scenario_id?: string | null;
+   mae: number;
+   rmse: number;
+   r2: number;
++  mean_bias: number;
+   spatial_error_summary: Record<string, number>;
++  scatter_points: ValidationScatterPoint[];
++  provenance: {
++    tag: string;
++    benchmark_generation: string;
++    independent_observations_used: boolean;
++    units: string;
++    pixel_count: number;
++    scatter_sample_count: number;
++  };
+   calibration_status: string;
+ }
+ 
+@@ -279,12 +316,14 @@
+   const emiss: number[][] = [];
+   const svf: number[][] = [];
+   const lai: number[][] = [];
++  const coverageMask: number[][] = [];
+   const landmarks: string[][] = [];
+ 
+   for (let r = 0; r < rows; r++) {
+     baseT[r] = []; bldgD[r] = []; bldgH[r] = []; vegF[r] = [];
+     waterF[r] = []; alb[r] = []; canopyH[r] = []; popD[r] = [];
+     qf[r] = []; emiss[r] = []; svf[r] = []; lai[r] = [];
++    coverageMask[r] = [];
+     landmarks[r] = [];
+ 
+     for (let c = 0; c < cols; c++) {
+@@ -307,7 +346,8 @@
+       emiss[r][c] = 0.94;
+       svf[r][c] = 0.74;
+       lai[r][c] = Number((v * 3.2).toFixed(2));
+-      landmarks[r][c] = isCenter ? "Central Green Buffer" : "Urban Commercial District";
++      coverageMask[r][c] = 1; // synthetic visualization support only, not observed geographic coverage
++      landmarks[r][c] = isCenter ? "Illustrative Green Buffer" : "Synthetic Urban Archetype";
+     }
+   }
+ 
+@@ -318,15 +358,30 @@
+       city: meta.city,
+       country: meta.country,
+       location: `${meta.city}, ${meta.country}`,
+-      crs: meta.crs,
+-      resolution_m: meta.resolution_m,
++      crs: "EPSG:4326",
++      configured_projected_crs: meta.crs,
++      distance_method: "Synthetic local fallback; projected analysis is not performed.",
++      bbox_crs: "EPSG:4326",
++      grid_coordinate_crs: "EPSG:4326",
++      resolution_m: 0,
++      effective_resolution_x_m: 0,
++      effective_resolution_y_m: 0,
++      nominal_resolution_m: meta.resolution_m,
++      resolution_note: "Unavailable for this local illustrative fallback grid.",
++      has_observed_satellite_lst: false,
++      provenance_note: "Synthetic frontend fallback generated because the API grid request failed. This is illustrative only; it is not the backend GeoJSON grid, a physics-solver result, or an observed satellite raster.",
++      layer_provenance: {
++        baseline_temperature_c: "Synthetic illustrative temperature field generated in the browser; not satellite-observed or produced by the backend physics solver",
++        population_density: "Synthetic illustrative proxy generated in the browser; not census-derived",
++        anthropogenic_heat_qf: "Synthetic illustrative proxy generated in the browser; not VIIRS-derived",
++      },
+       rows,
+       cols,
+       total_cells: rows * cols,
+       center_lat: meta.center_lat,
+       center_lon: meta.center_lon,
+       is_synthetic: true,
+-      tag: "MULTI-SOURCE SATELLITE TWIN",
++      tag: "SYNTHETIC FRONTEND FALLBACK — NOT THE BACKEND GRID",
+     },
+     layers: {
+       baseline_temperature_c: baseT,
+@@ -339,6 +394,7 @@
+       population_density: popD,
+       anthropogenic_heat_qf: qf,
+       surface_emissivity: emiss,
++      modelled_coverage_mask: coverageMask,
+       sky_view_factor: svf,
+       lai: lai,
+     },
+@@ -511,11 +567,15 @@
+     return res.json();
+   },
+ 
+-  async runValidation(): Promise<ValidationResponse> {
+-    const res = await fetch(`${API_BASE}/validation/run?scenario_id=scen_baseline`, {
+-      method: "POST"
++  async runValidation(studyAreaId = "delhi_cp", scenarioId = "scen_baseline"): Promise<ValidationResponse> {
++    const params = new URLSearchParams({
++      study_area_id: studyAreaId,
++      scenario_id: scenarioId,
+     });
+-    if (!res.ok) throw new Error("Failed to run validation");
++    const res = await fetch(`${API_BASE}/validation/run?${params.toString()}`, {
++      method: "POST",
++    });
++    if (!res.ok) throw new Error(`Failed to run internal validation (HTTP ${res.status})`);
+     return res.json();
+   },
+ 
+@@ -558,58 +618,129 @@
+     link.click();
+   },
+ 
+-  exportInterventionsToGeoJSON(solution: ParetoSolution, studyAreaName = "Urban District", filename = "intervention_blueprint.geojson") {
+-    const geojson = {
++  generateInterventionsGeoJSON(solution: ParetoSolution, studyAreaNameOrId = "delhi_cp") {
++    // Resolve study area from DEFAULT_STUDY_AREAS
++    const normalized = studyAreaNameOrId.toLowerCase().trim().replace(/ /g, "_");
++    const area = DEFAULT_STUDY_AREAS.find(
++      (s) => s.id === normalized || s.name.toLowerCase() === studyAreaNameOrId.toLowerCase() || s.city.toLowerCase() === studyAreaNameOrId.toLowerCase()
++    ) || DEFAULT_STUDY_AREAS[0];
++
++    const cLon = area.center_lon;
++    const cLat = area.center_lat;
++
++    // Derived zoning footprint coordinates within the study area's analysis window
++    // Coordinates are strictly [longitude, latitude], closed rings, WGS 84 (RFC 7946)
++    const coolRoofPoly = [
++      [
++        [Number((cLon - 0.0035).toFixed(6)), Number((cLat - 0.0025).toFixed(6))],
++        [Number((cLon - 0.0005).toFixed(6)), Number((cLat - 0.0025).toFixed(6))],
++        [Number((cLon - 0.0005).toFixed(6)), Number((cLat + 0.0005).toFixed(6))],
++        [Number((cLon - 0.0035).toFixed(6)), Number((cLat + 0.0005).toFixed(6))],
++        [Number((cLon - 0.0035).toFixed(6)), Number((cLat - 0.0025).toFixed(6))]
++      ]
++    ];
++
++    const greenRoofPoly = [
++      [
++        [Number((cLon - 0.0005).toFixed(6)), Number((cLat - 0.0025).toFixed(6))],
++        [Number((cLon + 0.0025).toFixed(6)), Number((cLat - 0.0025).toFixed(6))],
++        [Number((cLon + 0.0025).toFixed(6)), Number((cLat + 0.0005).toFixed(6))],
++        [Number((cLon - 0.0005).toFixed(6)), Number((cLat + 0.0005).toFixed(6))],
++        [Number((cLon - 0.0005).toFixed(6)), Number((cLat - 0.0025).toFixed(6))]
++      ]
++    ];
++
++    const treeCorridorLine = [
++      [Number((cLon - 0.0045).toFixed(6)), Number((cLat - 0.0035).toFixed(6))],
++      [Number((cLon + 0.0035).toFixed(6)), Number((cLat + 0.0035).toFixed(6))]
++    ];
++
++    return {
+       type: "FeatureCollection",
+-      name: `UrbanCoolSim Mitigation Blueprint - ${studyAreaName}`,
+-      crs: { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32643" } },
++      metadata: {
++        project: "UrbanCoolSim",
++        study_area_id: area.id,
++        study_area_name: area.name,
++        city: area.city,
++        country: area.country,
++        coordinate_reference_system: "OGC:CRS84 / WGS 84 longitude-latitude",
++        coordinate_order: "[longitude, latitude]",
++        configured_projected_crs: area.crs,
++        is_illustrative_blueprint: true,
++        provenance: "illustrative_mitigation_blueprint",
++        limitations: [
++          "Illustrative zoning blueprint generated for planning within the configured analysis window.",
++          "Not an official cadastral, architectural, or municipal property boundary.",
++          "Coordinates are WGS 84 longitude/latitude in decimal degrees."
++        ]
++      },
+       features: [
+         {
+           type: "Feature",
+           properties: {
+             intervention: "Cool Roof Program",
+-            coverage_pct: solution.cool_roof_pct,
++            study_area_id: area.id,
++            study_area_name: area.name,
++            coverage_pct: solution.cool_roof_pct > 1.0 ? Number(solution.cool_roof_pct.toFixed(1)) : Number((solution.cool_roof_pct * 100).toFixed(1)),
++            coverage_unit: "percent (0-100)",
+             albedo_delta: "+0.40",
+-            capex_usd: solution.total_cost_usd * 0.22,
+-            cooling_contribution: "-1.4°C"
++            capex_usd: Number((solution.total_cost_usd * 0.22).toFixed(2)),
++            cooling_contribution: "-1.4°C",
++            is_illustrative: true
+           },
+           geometry: {
+             type: "Polygon",
+-            coordinates: [[[77.215, 28.630], [77.218, 28.630], [77.218, 28.633], [77.215, 28.633], [77.215, 28.630]]]
++            coordinates: coolRoofPoly
+           }
+         },
+         {
+           type: "Feature",
+           properties: {
+             intervention: "Green Roof & Living Infrastructure",
+-            coverage_pct: solution.green_roof_pct,
+-            annual_water_demand_m3: solution.water_demand_m3 * 0.45,
+-            cooling_contribution: "-0.9°C"
++            study_area_id: area.id,
++            study_area_name: area.name,
++            coverage_pct: solution.green_roof_pct > 1.0 ? Number(solution.green_roof_pct.toFixed(1)) : Number((solution.green_roof_pct * 100).toFixed(1)),
++            coverage_unit: "percent (0-100)",
++            annual_water_demand_m3: Number((solution.water_demand_m3 * 0.45).toFixed(1)),
++            cooling_contribution: "-0.9°C",
++            is_illustrative: true
+           },
+           geometry: {
+             type: "Polygon",
+-            coordinates: [[[77.218, 28.630], [77.221, 28.630], [77.221, 28.633], [77.218, 28.633], [77.218, 28.630]]]
++            coordinates: greenRoofPoly
+           }
+         },
+         {
+           type: "Feature",
+           properties: {
+             intervention: "Urban Tree Shading Corridors",
+-            canopy_expansion_pct: solution.tree_canopy_pct,
+-            cooling_contribution: "-1.1°C"
++            study_area_id: area.id,
++            study_area_name: area.name,
++            canopy_expansion_pct: solution.tree_canopy_pct > 1.0 ? Number(solution.tree_canopy_pct.toFixed(1)) : Number((solution.tree_canopy_pct * 100).toFixed(1)),
++            coverage_unit: "percent (0-100)",
++            cooling_contribution: "-1.1°C",
++            is_illustrative: true
+           },
+           geometry: {
+             type: "LineString",
+-            coordinates: [[77.214, 28.628], [77.222, 28.635]]
++            coordinates: treeCorridorLine
+           }
+         }
+       ]
+     };
++  },
++
++  exportInterventionsToGeoJSON(solution: ParetoSolution, studyAreaNameOrId = "delhi_cp", filename?: string) {
++    const geojson = this.generateInterventionsGeoJSON(solution, studyAreaNameOrId);
++    const resolvedFilename = filename || `${(geojson.metadata?.study_area_id || "urban_district")}_mitigation_blueprint.geojson`;
+     
+-    const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: "application/geo+json" });
+-    const link = document.createElement("a");
+-    link.href = URL.createObjectURL(blob);
+-    link.download = filename;
+-    link.click();
++    if (typeof window !== "undefined" && typeof document !== "undefined") {
++      const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: "application/geo+json" });
++      const link = document.createElement("a");
++      link.href = URL.createObjectURL(blob);
++      link.download = resolvedFilename;
++      link.click();
++    }
++    return geojson;
+   }
+ };
+--- a/frontend/src/app/reports/page.tsx
++++ b/frontend/src/app/reports/page.tsx
+@@ -2,7 +2,7 @@
+ 
+ import { useState, useEffect } from "react";
+ import { Header } from "@/components/Header";
+-import { api, DigitalTwinGrid, ParetoSolution } from "@/lib/api";
++import { api, DigitalTwinGrid, ParetoSolution, DEFAULT_STUDY_AREAS } from "@/lib/api";
+ import { 
+   FileText, 
+   Download, 
+@@ -13,6 +13,14 @@
+   FileCheck,
+   Sparkles
+ } from "lucide-react";
++
++const STUDY_AREA_BBOXES: Record<string, [number, number, number, number]> = {
++  mumbai_bkc: [72.8610, 19.0590, 72.8756, 19.0724],
++  delhi_cp: [77.2130, 28.6270, 77.2264, 28.6386],
++  singapore_marina: [103.8495, 1.2780, 103.8635, 1.2914],
++  phoenix_downtown: [-112.0810, 33.4420, -112.0670, 33.4548],
++  tokyo_shinjuku: [139.6895, 35.6840, 139.7035, 35.6970],
++};
+ 
+ export default function ReportsPage() {
+   const [studyArea, setStudyArea] = useState("delhi_cp");
+@@ -64,22 +72,35 @@
+ 
+   const handleExportGeoJSON = () => {
+     setDownloadingFormat("geojson");
++    const activeAreaMeta = DEFAULT_STUDY_AREAS.find((a) => a.id === studyArea) || DEFAULT_STUDY_AREAS[0];
++    const bbox = STUDY_AREA_BBOXES[studyArea] || STUDY_AREA_BBOXES["delhi_cp"];
++    const latScale = Math.cos((activeAreaMeta.center_lat * Math.PI) / 180.0);
++    const w = (bbox[2] - bbox[0]) * 111320 * latScale;
++    const h = (bbox[3] - bbox[1]) * 111320;
++    const studyAreaBboxAreaM2 = Math.round(w * h);
++
++    const derivedArea = (gridData?.metadata?.effective_resolution_x_m && gridData?.metadata?.effective_resolution_y_m && gridData?.metadata?.total_cells)
++      ? Math.round(gridData.metadata.total_cells * gridData.metadata.effective_resolution_x_m * gridData.metadata.effective_resolution_y_m)
++      : (gridData?.metadata?.total_cells
++          ? Math.round(gridData.metadata.total_cells * ((gridData.metadata.resolution_m || 10) ** 2))
++          : studyAreaBboxAreaM2);
++
+     const defaultSol: ParetoSolution = {
+       solution_id: 1,
+-      green_roof_pct: 0.35,
+-      cool_roof_pct: 0.25,
+-      tree_canopy_pct: 0.20,
+-      water_pct: 0.05,
++      green_roof_pct: 35.0,
++      cool_roof_pct: 25.0,
++      tree_canopy_pct: 20.0,
++      water_pct: 5.0,
+       delta_t_mean: 3.42,
+       total_cost_usd: 345000,
+       water_demand_m3: 4200,
+-      land_area_m2: 250000,
++      land_area_m2: derivedArea,
+       heat_risk_score: 1.8,
+       physics_validated: true,
+       validated_delta_t: 3.42,
+       validation_error: 0.04
+     };
+-    api.exportInterventionsToGeoJSON(defaultSol, studyArea.toUpperCase(), `${studyArea}_mitigation_blueprint.geojson`);
++    api.exportInterventionsToGeoJSON(defaultSol, studyArea, `${studyArea}_mitigation_blueprint.geojson`);
+     setTimeout(() => setDownloadingFormat(null), 1500);
+   };
+ 
+@@ -106,7 +127,7 @@
+             </h1>
+             <p className="text-xs text-ink-secondary max-w-xl leading-relaxed">
+               Synthesizes baseline thermodynamics, NSGA-II Pareto portfolio selections, capital expenditure budgets, 
+-              water demand quotas, and satellite ground-truth calibration into publication-ready dossiers.
++              water demand quotas, and explicit model/data provenance into publication-ready dossiers.
+             </p>
+           </div>
+ 
+--- a/frontend/src/app/optimization/page.tsx
++++ b/frontend/src/app/optimization/page.tsx
+@@ -100,7 +100,7 @@
+ 
+   const handleExportGeoJSON = () => {
+     if (!selectedSolution) return;
+-    api.exportInterventionsToGeoJSON(selectedSolution, studyArea.toUpperCase());
++    api.exportInterventionsToGeoJSON(selectedSolution, studyArea, `${studyArea}_mitigation_blueprint.geojson`);
+   };
+ 
+   const solutions = optData?.pareto_solutions || [];
+--- a/frontend/src/app/methodology/page.tsx
++++ b/frontend/src/app/methodology/page.tsx
+@@ -6,9 +6,9 @@
+ export default function MethodologyPage() {
+   return (
+     <div className="flex flex-col min-h-screen bg-surface-base text-ink-primary select-none">
+-      <Header 
+-        title="Methodology & Scientific Principles" 
+-        subtitle="Mathematical Formulations, Physical Assumptions & Safeguards" 
++      <Header
++        title="Methodology & Scientific Principles"
++        subtitle="Mathematical Formulations, Physical Assumptions & Safeguards"
+       />
+ 
+       <div className="p-5 sm:p-7 max-w-5xl mx-auto w-full space-y-8">
+@@ -21,8 +21,7 @@
+             Thermodynamic Mechanics & System Boundaries
+           </h1>
+           <p className="text-xs text-ink-secondary max-w-2xl leading-relaxed">
+-            UrbanCoolSim combines satellite multi-spectral remote sensing, 1D/2D Surface Energy Balance physics, 
+-            gradient-boosted surrogate acceleration, and multi-objective Pareto optimization.
++            The active grid path combines bundled georeferenced vector features, a Surface Energy Balance model, and a LightGBM surrogate with multi-objective optimization. Independent satellite LST rasters are not currently loaded by the grid endpoint.
+           </p>
+         </div>
+ 
+@@ -49,7 +48,7 @@
+               <div className="space-y-1 p-3 rounded-lg surface-inset">
+                 <strong className="text-ink-primary font-medium block">Q* — Net All-Wave Radiation</strong>
+                 <p className="text-[11px] text-ink-dim leading-relaxed">
+-                  Balances incoming solar shortwave absorption (1 − α)S↓ against 
++                  Balances incoming solar shortwave absorption (1 − α)S↓ against
+                   atmospheric thermal longwave εL↓ and surface Planck emission εσTs⁴.
+                 </p>
+               </div>
+@@ -57,7 +56,7 @@
+               <div className="space-y-1 p-3 rounded-lg surface-inset">
+                 <strong className="text-ink-primary font-medium block">Qf — Anthropogenic Waste Heat</strong>
+                 <p className="text-[11px] text-ink-dim leading-relaxed">
+-                  Parameterizes localized sensible emissions from HVAC building cooling, vehicular traffic, 
++                  Parameterizes localized sensible emissions from HVAC building cooling, vehicular traffic,
+                   and commercial activities based on building footprint density.
+                 </p>
+               </div>
+@@ -65,7 +64,7 @@
+               <div className="space-y-1 p-3 rounded-lg surface-inset">
+                 <strong className="text-ink-primary font-medium block">Qh — Sensible Turbulent Heat Flux</strong>
+                 <p className="text-[11px] text-ink-dim leading-relaxed">
+-                  Drives ambient air heating: ρcp (Ts − Ta) / ra. Aerodynamic resistance ra is coupled 
++                  Drives ambient air heating: ρcp (Ts − Ta) / ra. Aerodynamic resistance ra is coupled
+                   to logarithmic wind profiles, building heights H, and roughness length z0 = 0.1 H.
+                 </p>
+               </div>
+@@ -73,7 +72,7 @@
+               <div className="space-y-1 p-3 rounded-lg surface-inset">
+                 <strong className="text-ink-primary font-medium block">Qe — Latent Evapotranspiration Flux</strong>
+                 <p className="text-[11px] text-ink-dim leading-relaxed">
+-                  Moisture-driven cooling flux from urban tree canopy, vegetative roofs, and open water bodies, 
++                  Moisture-driven cooling flux from urban tree canopy, vegetative roofs, and open water bodies,
+                   governed by Penman-Monteith saturation vapor deficit equilibrium.
+                 </p>
+               </div>
+@@ -92,19 +91,18 @@
+ 
+           <div className="graphite-card p-5 sm:p-6 rounded-lg space-y-3.5 text-xs text-ink-secondary leading-relaxed">
+             <p>
+-              While deterministic SEB root-finding guarantees thermodynamic truth, evaluating tens of thousands 
+-              of optimization candidates in real time requires rapid inference. UrbanCoolSim trains a gradient-boosted surrogate 
+-              (LightGBM) on 10,000 pre-computed physics runs (R² = 0.962).
++              The SEB solver provides a modelled equilibrium under its assumptions and configured boundary conditions. Evaluating many
++              optimization candidates can benefit from rapid surrogate inference. The application includes a LightGBM surrogate artifact and a training pipeline. Its training sample count and reported R² must be taken from the matching model metadata and evaluation results, not assumed from this page&apos;s narrative.
+             </p>
+ 
+             <div className="p-3.5 surface-inset rounded-lg flex items-start gap-3">
+               <ShieldCheck className="w-4 h-4 text-status-safe shrink-0 mt-0.5" />
+               <div>
+-                <strong className="text-ink-primary font-medium block">Deterministic Ground-Truth Re-Validation:</strong>
++                <strong className="text-ink-primary font-medium block">Physics Re-Check (implementation to verify):</strong>
+                 <p className="text-[11px] text-ink-dim mt-0.5 leading-relaxed">
+-                  Surrogate models are never trusted blindly. Once the NSGA-II optimizer identifies candidate 
+-                  Pareto solutions, each solution is re-simulated through the full deterministic numerical SEB engine. 
+-                  Any portfolio exhibiting residual error &gt; 0.15°C is rejected.
++                  Surrogate models are never trusted blindly. Once the NSGA-II optimizer identifies candidate
++                  Pareto solutions, each solution is re-simulated through the full deterministic numerical SEB engine.
++                  The exact residual definition, units, and rejection threshold must be verified against the optimization code before this safeguard is claimed as active.
+                 </p>
+               </div>
+             </div>
+@@ -122,7 +120,7 @@
+ 
+           <div className="graphite-card p-5 sm:p-6 rounded-lg space-y-2.5 text-xs">
+             <p className="text-ink-secondary leading-relaxed">
+-              UrbanCoolSim executes an Non-Dominated Sorting Genetic Algorithm (NSGA-II) solving across 5 competing objective functions:
++              The UI describes five priorities, but the implementation currently needs to be checked against the objective functions passed to NSGA-II. The formula below is the intended design statement, not by itself proof that all five objectives are optimized:
+             </p>
+             <div className="p-3.5 rounded-lg surface-inset font-mono text-[11px] text-cobalt space-y-1">
+               <div>min F(x) = [ −w_cool·ΔT,  +w_cost·CapEx,  −w_pop·PopProtected,  +w_water·WaterDemand,  −w_energy·HVAC_kWh ]</div>
+--- a/frontend/package.json
++++ b/frontend/package.json
+@@ -28,6 +28,8 @@
+     "@types/react": "^18.2.64",
+     "@types/react-dom": "^18.2.21",
+     "autoprefixer": "^10.4.18",
++    "eslint": "^8.57.1",
++    "eslint-config-next": "^14.2.35",
+     "postcss": "^8.4.35",
+     "tailwindcss": "^3.4.1",
+     "typescript": "^5.4.2"
+--- a/scripts/test_geojson_export.py
++++ b/scripts/test_geojson_export.py
+@@ -0,0 +1,133 @@
++"""Test suite verifying RFC 7946 compliance and selected study area consistency for GeoJSON exports."""
++import json
++import math
++import subprocess
++import sys
++from pathlib import Path
++
++PROJECT_ROOT = Path(__file__).resolve().parents[1]
++
++# Canonical bounding boxes from backend/app/spatial/geo_digital_twin.py
++CANONICAL_BBOXES = {
++    "delhi_cp": [77.2130, 28.6270, 77.2264, 28.6386],
++    "mumbai_bkc": [72.8610, 19.0590, 72.8756, 19.0724],
++    "singapore_marina": [103.8495, 1.2780, 103.8635, 1.2914],
++    "phoenix_downtown": [-112.0810, 33.4420, -112.0670, 33.4548],
++    "tokyo_shinjuku": [139.6895, 35.6840, 139.7035, 35.6970],
++}
++
++
++def run_node_geojson_export():
++    """Execute the Node evaluation of generateInterventionsGeoJSON across all study areas."""
++    script = """
++    const fs = require('fs');
++    const path = require('path');
++    
++    // Read frontend/src/lib/api.ts and evaluate generateInterventionsGeoJSON
++    const apiTs = fs.readFileSync('frontend/src/lib/api.ts', 'utf8');
++    
++    // Extract DEFAULT_STUDY_AREAS and generateInterventionsGeoJSON
++    const areasMatch = apiTs.match(/export const DEFAULT_STUDY_AREAS: StudyAreaOption\\[\\] = ([\\s\\S]*?);\\n\\nexport/);
++    if (!areasMatch) throw new Error("Could not extract DEFAULT_STUDY_AREAS from api.ts");
++    const DEFAULT_STUDY_AREAS = eval('(' + areasMatch[1] + ')');
++    
++    const fnMatch = apiTs.match(/generateInterventionsGeoJSON\\(solution: ParetoSolution, studyAreaNameOrId = "delhi_cp"\\) {([\\s\\S]*?)\\n  },\\n\\n  exportInterventionsToGeoJSON/);
++    if (!fnMatch) throw new Error("Could not extract generateInterventionsGeoJSON from api.ts");
++    
++    const generateFn = new Function('solution', 'studyAreaNameOrId', 'DEFAULT_STUDY_AREAS', fnMatch[1]);
++    
++    const dummySol = {
++        solution_id: 1,
++        green_roof_pct: 0.35,
++        cool_roof_pct: 0.25,
++        tree_canopy_pct: 0.20,
++        water_pct: 0.05,
++        delta_t_mean: 3.42,
++        total_cost_usd: 345000,
++        water_demand_m3: 4200,
++        land_area_m2: 250000,
++        heat_risk_score: 1.8,
++        physics_validated: true,
++        validated_delta_t: 3.42,
++        validation_error: 0.04
++    };
++    
++    const results = {};
++    const testAreas = ['delhi_cp', 'mumbai_bkc', 'singapore_marina', 'phoenix_downtown', 'tokyo_shinjuku'];
++    for (const a of testAreas) {
++        results[a] = generateFn(dummySol, a, DEFAULT_STUDY_AREAS);
++    }
++    console.log(JSON.stringify(results));
++    """
++    res = subprocess.run(
++        ["node", "-e", script],
++        cwd=PROJECT_ROOT,
++        capture_output=True,
++        text=True,
++        check=True
++    )
++    return json.loads(res.stdout)
++
++
++def test_geojson_export_rfc7946_and_selected_area_consistency():
++    outputs = run_node_geojson_export()
++    assert len(outputs) == 5
++
++    for area_id, doc in outputs.items():
++        assert doc.get("type") == "FeatureCollection", f"{area_id}: type must be FeatureCollection"
++        assert "crs" not in doc, f"{area_id}: RFC 7946 forbids top-level crs member"
++
++        meta = doc.get("metadata", {})
++        assert meta.get("study_area_id") == area_id, f"{area_id}: metadata.study_area_id mismatch"
++        assert meta.get("coordinate_order") == "[longitude, latitude]"
++        assert meta.get("is_illustrative_blueprint") is True
++
++        features = doc.get("features", [])
++        assert len(features) == 3, f"{area_id}: expected 3 intervention features"
++
++        bbox = CANONICAL_BBOXES[area_id]
++        west, south, east, north = bbox
++
++        for f_idx, feat in enumerate(features):
++            assert feat.get("type") == "Feature"
++            props = feat.get("properties", {})
++            assert props.get("study_area_id") == area_id
++            assert props.get("is_illustrative") is True
++            if "coverage_pct" in props:
++                assert 0.0 <= props["coverage_pct"] <= 100.0
++                assert props.get("coverage_unit") == "percent (0-100)"
++
++            geom = feat.get("geometry", {})
++            g_type = geom.get("type")
++            coords = geom.get("coordinates")
++
++            if g_type == "Polygon":
++                ring = coords[0]
++                assert len(ring) >= 4, f"{area_id} feat {f_idx}: polygon ring must have >= 4 points"
++                assert ring[0] == ring[-1], f"{area_id} feat {f_idx}: polygon ring must be closed"
++                for lon, lat in ring:
++                    assert west <= lon <= east, f"{area_id} lon {lon} outside bbox [{west}, {east}]"
++                    assert south <= lat <= north, f"{area_id} lat {lat} outside bbox [{south}, {north}]"
++            elif g_type == "LineString":
++                assert len(coords) >= 2
++                for lon, lat in coords:
++                    assert west <= lon <= east, f"{area_id} lon {lon} outside bbox [{west}, {east}]"
++                    assert south <= lat <= north, f"{area_id} lat {lat} outside bbox [{south}, {north}]"
++            else:
++                raise AssertionError(f"Unexpected geometry type: {g_type}")
++
++        # Ensure Mumbai, Singapore, Phoenix, Tokyo do NOT have Delhi coordinates
++        if area_id != "delhi_cp":
++            delhi_w, delhi_s, delhi_e, delhi_n = CANONICAL_BBOXES["delhi_cp"]
++            for feat in features:
++                coords = feat["geometry"]["coordinates"]
++                pts = coords[0] if feat["geometry"]["type"] == "Polygon" else coords
++                for lon, lat in pts:
++                    in_delhi = (delhi_w <= lon <= delhi_e) and (delhi_s <= lat <= delhi_n)
++                    assert not in_delhi, f"{area_id} contains coordinates in Delhi: [{lon}, {lat}]"
++
++    print("[PASS] GeoJSON export RFC 7946 compliance and selected area geometry verified for all 5 study areas.")
++
++
++if __name__ == "__main__":
++    test_geojson_export_rfc7946_and_selected_area_consistency()

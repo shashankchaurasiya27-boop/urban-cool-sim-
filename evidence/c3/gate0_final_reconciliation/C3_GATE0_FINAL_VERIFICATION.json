@@ -1,0 +1,96 @@
+{
+  "audit_name": "UrbanCoolSim C3 Phase 0 Final Gate 0 Verification",
+  "timestamp_iso": "2026-10-30T23:20:00+05:30",
+  "auditor": "Independent Release Engineer & Verification Auditor",
+  "final_gate_status": "PASSED WITH LIMITATIONS",
+  "gate_summary": {
+    "total_criteria": 9,
+    "passed": 8,
+    "passed_with_limitations": 1,
+    "failed": 0,
+    "blocked": 0
+  },
+  "criteria": [
+    {
+      "criterion_id": "CRIT-01-SOURCE-IDENTITY",
+      "name": "Source Identity & Snapshot Fingerprint",
+      "status": "passed",
+      "evidence_reference": "C3_GATE0_FINAL_SOURCE_MANIFEST.sha256",
+      "command": "Recomputed SHA-256 over 224 canonical files",
+      "exit_code": 0,
+      "details": "Canonical source snapshot fingerprint established over 224 source files: 2168ee029a2ccfa1b841f8c16e1e6ea62fc06eaf53338377cacc509620861a67."
+    },
+    {
+      "criterion_id": "CRIT-02-C2-BASELINE-FREEZE",
+      "name": "C2 Baseline & C3 Preparation Archive Freeze",
+      "status": "passed",
+      "evidence_reference": "dist/UrbanCoolSim_C3_Preparation_Source.zip and SHA256SUMS.txt",
+      "command": "shasum -a 256 dist/UrbanCoolSim_C3_Preparation_Source.zip",
+      "exit_code": 0,
+      "details": "Preparation zip matched reported hash 0454a6dea258e3520bd029f6b2cac0313deb731a6014de2b35a8a8fc1461eb4d byte-for-byte."
+    },
+    {
+      "criterion_id": "CRIT-03-ROLLBACK-VERIFICATION",
+      "name": "Standalone Rollback Copy Verification",
+      "status": "passed",
+      "evidence_reference": "UrbanCoolSim_Rollback_C3_Gate0_20261030_230500/ and C3_GATE0_FINAL_ROLLBACK_STATUS.md",
+      "command": "Python automated hash and SQLite table row count comparison",
+      "exit_code": 0,
+      "details": "627 files (81.72 MB) backed up outside workspace; 0 mismatches across 100% of copied files."
+    },
+    {
+      "criterion_id": "CRIT-04-WORKSPACE-MUTATION-RECONCILIATION",
+      "name": "Workspace Zero-Mutation Verification",
+      "status": "passed_with_limitations",
+      "evidence_reference": "C3_GATE0_FINAL_WORKSPACE_DIFF.json",
+      "command": "Full tree diff between workspace and pre-test rollback copy",
+      "exit_code": 0,
+      "details": "Application source code, configs, and active model were 100% UNCHANGED. However, transient runtime mutation occurred: 2 checkpoint models created, 2 test PDFs created, 1 row added to sqlite optimization_runs table by test_backend.py."
+    },
+    {
+      "criterion_id": "CRIT-05-DEPENDENCY-AUDIT",
+      "name": "Dependency Inventory & Environment Health",
+      "status": "passed",
+      "evidence_reference": "docs/release/DEPENDENCY_INVENTORY.md",
+      "command": "pip check (backend & spatial) and npm ls --depth=0",
+      "exit_code": 0,
+      "details": "Both Python virtualenvs report zero broken requirements; npm ls passes cleanly with 22 resolved packages."
+    },
+    {
+      "criterion_id": "CRIT-06-TEST-COUNT-RECONCILIATION",
+      "name": "C2 Test Count Reconciliation (79 vs 83)",
+      "status": "passed",
+      "evidence_reference": "artifacts/c2-final-closure/FINAL_VERIFICATION_SUMMARY.md",
+      "command": "Inspection of C2 final hardening matrix tests",
+      "exit_code": 0,
+      "details": "Four hardening tests (shared validator, 4-corner UTM envelope, 422 conflict rejection, constraint feasibility) account for the 79 -> 83 progression."
+    },
+    {
+      "criterion_id": "CRIT-07-FRESH-TEST-VERIFICATION",
+      "name": "Fresh Backend Test Execution (83/83 Passed)",
+      "status": "passed",
+      "evidence_reference": "logs/pytest_gate0_run.log and pytest_gate0_run.xml",
+      "command": "PYTHONPATH=backend pytest backend/tests/ -v",
+      "exit_code": 0,
+      "details": "83 passed, 0 failed, 0 skipped in 23.46s."
+    },
+    {
+      "criterion_id": "CRIT-08-SPATIAL-VALIDATION",
+      "name": "Geospatial Dataset Topological & Schema Validation",
+      "status": "passed",
+      "evidence_reference": "logs/spatial_validation_gate0.log",
+      "command": "python dataset/validate_spatial_data.py",
+      "exit_code": 0,
+      "details": "10 of 10 datasets valid (13,880 physical OSM features across 5 cities, 0 invalid geometries)."
+    },
+    {
+      "criterion_id": "CRIT-09-FRONTEND-BUILD-VERIFICATION",
+      "name": "Frontend Static Compilation & Production Build",
+      "status": "passed",
+      "evidence_reference": "logs/frontend_build_gate0.log and logs/frontend_checks_gate0.log",
+      "command": "npx tsc --noEmit && npm run lint && npm run build",
+      "exit_code": 0,
+      "details": "TypeScript check: 0 errors; ESLint: 0 errors; Production build: 15/15 static routes compiled cleanly."
+    }
+  ]
+}

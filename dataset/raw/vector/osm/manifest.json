@@ -1,0 +1,225 @@
+{
+  "project": "UrbanCoolSim",
+  "manifest_type": "real_osm_vector_acquisition_run",
+  "run_started_at_utc": "2026-10-25T18:59:02Z",
+  "run_finished_at_utc": "2026-10-25T19:07:31Z",
+  "source": "OpenStreetMap via OSMnx / Overpass API",
+  "retrieval_library": "OSMnx",
+  "source_home": "https://www.openstreetmap.org/",
+  "source_copyright_and_license": "https://www.openstreetmap.org/copyright",
+  "source_license": "ODbL-1.0",
+  "attribution_required": "© OpenStreetMap contributors",
+  "query_tags_union": {
+    "building": true,
+    "highway": true,
+    "railway": [
+      "rail",
+      "light_rail",
+      "subway",
+      "tram"
+    ],
+    "leisure": [
+      "park",
+      "garden",
+      "nature_reserve",
+      "recreation_ground",
+      "common"
+    ],
+    "landuse": [
+      "grass",
+      "forest",
+      "meadow",
+      "recreation_ground",
+      "orchard",
+      "village_green",
+      "reservoir",
+      "residential",
+      "commercial",
+      "industrial",
+      "retail"
+    ],
+    "natural": [
+      "water",
+      "wood",
+      "scrub",
+      "wetland",
+      "grassland",
+      "heath"
+    ],
+    "waterway": [
+      "river",
+      "stream",
+      "canal",
+      "drain",
+      "ditch"
+    ]
+  },
+  "source_of_analysis_windows": "backend/app/spatial/geo_digital_twin.py::STUDY_AREA_CONFIGS",
+  "official_boundaries_verified": false,
+  "coordinate_reference_system": "WGS 84 / EPSG:4326, coordinates [longitude, latitude]",
+  "configured_projected_crs_is_metadata_only_until_explicit_reprojection": true,
+  "areas_succeeded": [
+    {
+      "study_area_id": "mumbai_bkc",
+      "name": "Bandra Kurla Complex (BKC)",
+      "city": "Mumbai",
+      "country": "India",
+      "analysis_window_wgs84": [
+        72.861,
+        19.059,
+        72.8756,
+        19.0724
+      ],
+      "configured_projected_crs": "EPSG:32643",
+      "official_boundary_verified": false,
+      "retrieved_at_utc": "2026-10-25T19:00:35Z",
+      "raw_output": "dataset/raw/vector/osm/mumbai_bkc_features.geojson",
+      "processed_output": "dataset/processed/spatial_vectors/mumbai_bkc_features_clipped.geojson",
+      "osmnx_version": "2.1.1",
+      "overpass_base_url": "https://overpass-api.de/api",
+      "feature_counts_by_class": {
+        "building": 275,
+        "green_space": 19,
+        "landuse_context": 68,
+        "transport": 574,
+        "water": 5
+      },
+      "raw_feature_count": 941,
+      "processed_clipped_feature_count": 941,
+      "features_skipped_for_missing_or_unsupported_geometry_or_tags": 114,
+      "processed_geometry_repair_count": 0,
+      "processed_geometries_differing_from_raw": 158,
+      "status": "DOWNLOADED"
+    },
+    {
+      "study_area_id": "delhi_cp",
+      "name": "Connaught Place Radial District",
+      "city": "New Delhi",
+      "country": "India",
+      "analysis_window_wgs84": [
+        77.213,
+        28.627,
+        77.2264,
+        28.6386
+      ],
+      "configured_projected_crs": "EPSG:32643",
+      "official_boundary_verified": false,
+      "retrieved_at_utc": "2026-10-25T19:02:22Z",
+      "raw_output": "dataset/raw/vector/osm/delhi_cp_features.geojson",
+      "processed_output": "dataset/processed/spatial_vectors/delhi_cp_features_clipped.geojson",
+      "osmnx_version": "2.1.1",
+      "overpass_base_url": "https://overpass-api.de/api",
+      "feature_counts_by_class": {
+        "building": 418,
+        "green_space": 9,
+        "landuse_context": 61,
+        "transport": 1067
+      },
+      "raw_feature_count": 1555,
+      "processed_clipped_feature_count": 1555,
+      "features_skipped_for_missing_or_unsupported_geometry_or_tags": 139,
+      "processed_geometry_repair_count": 0,
+      "processed_geometries_differing_from_raw": 239,
+      "status": "DOWNLOADED"
+    },
+    {
+      "study_area_id": "singapore_marina",
+      "name": "Marina Bay Financial District",
+      "city": "Singapore",
+      "country": "Singapore",
+      "analysis_window_wgs84": [
+        103.8495,
+        1.278,
+        103.8635,
+        1.2914
+      ],
+      "configured_projected_crs": "EPSG:32648",
+      "official_boundary_verified": false,
+      "retrieved_at_utc": "2026-10-25T19:04:16Z",
+      "raw_output": "dataset/raw/vector/osm/singapore_marina_features.geojson",
+      "processed_output": "dataset/processed/spatial_vectors/singapore_marina_features_clipped.geojson",
+      "osmnx_version": "2.1.1",
+      "overpass_base_url": "https://overpass-api.de/api",
+      "feature_counts_by_class": {
+        "building": 253,
+        "green_space": 96,
+        "landuse_context": 15,
+        "transport": 1784,
+        "water": 18
+      },
+      "raw_feature_count": 2166,
+      "processed_clipped_feature_count": 2166,
+      "features_skipped_for_missing_or_unsupported_geometry_or_tags": 244,
+      "processed_geometry_repair_count": 0,
+      "processed_geometries_differing_from_raw": 318,
+      "status": "DOWNLOADED"
+    },
+    {
+      "study_area_id": "phoenix_downtown",
+      "name": "Downtown Urban Core",
+      "city": "Phoenix, AZ",
+      "country": "USA",
+      "analysis_window_wgs84": [
+        -112.081,
+        33.442,
+        -112.067,
+        33.4548
+      ],
+      "configured_projected_crs": "EPSG:32612",
+      "official_boundary_verified": false,
+      "retrieved_at_utc": "2026-10-25T19:05:39Z",
+      "raw_output": "dataset/raw/vector/osm/phoenix_downtown_features.geojson",
+      "processed_output": "dataset/processed/spatial_vectors/phoenix_downtown_features_clipped.geojson",
+      "osmnx_version": "2.1.1",
+      "overpass_base_url": "https://overpass-api.de/api",
+      "feature_counts_by_class": {
+        "building": 401,
+        "green_space": 81,
+        "landuse_context": 76,
+        "transport": 2316,
+        "water": 11
+      },
+      "raw_feature_count": 2885,
+      "processed_clipped_feature_count": 2885,
+      "features_skipped_for_missing_or_unsupported_geometry_or_tags": 848,
+      "processed_geometry_repair_count": 0,
+      "processed_geometries_differing_from_raw": 234,
+      "status": "DOWNLOADED"
+    },
+    {
+      "study_area_id": "tokyo_shinjuku",
+      "name": "Shinjuku Skyscraper Center",
+      "city": "Tokyo",
+      "country": "Japan",
+      "analysis_window_wgs84": [
+        139.6895,
+        35.684,
+        139.7035,
+        35.697
+      ],
+      "configured_projected_crs": "EPSG:32654",
+      "official_boundary_verified": false,
+      "retrieved_at_utc": "2026-10-25T19:07:24Z",
+      "raw_output": "dataset/raw/vector/osm/tokyo_shinjuku_features.geojson",
+      "processed_output": "dataset/processed/spatial_vectors/tokyo_shinjuku_features_clipped.geojson",
+      "osmnx_version": "2.1.1",
+      "overpass_base_url": "https://overpass-api.de/api",
+      "feature_counts_by_class": {
+        "building": 2438,
+        "green_space": 174,
+        "landuse_context": 104,
+        "other_mapped_feature": 1,
+        "transport": 3603,
+        "water": 13
+      },
+      "raw_feature_count": 6333,
+      "processed_clipped_feature_count": 6333,
+      "features_skipped_for_missing_or_unsupported_geometry_or_tags": 735,
+      "processed_geometry_repair_count": 0,
+      "processed_geometries_differing_from_raw": 391,
+      "status": "DOWNLOADED"
+    }
+  ],
+  "areas_failed": [],
+  "status": "DOWNLOADED_ALL_REQUESTED_AREAS"
+}
