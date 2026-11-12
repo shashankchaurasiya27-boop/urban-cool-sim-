@@ -3,9 +3,9 @@
 generate_enhancement_report_pdf.py
 Publication-Grade Engineering Audit & Architecture Report for UrbanCoolSim.
 Documents all identified bugs, mathematical and physical equation errors,
-security vulnerabilities, geospatial flaws, self-healing adapters,
-and production cloud deployment pipelines.
-Targeting 9 to 10 comprehensive, beautifully styled pages.
+security vulnerabilities, geospatial flaws, button failures, broken engines,
+map rendering defects, self-healing adapters, and production cloud deployment pipelines.
+Targeting 11 to 12 comprehensive, beautifully styled pages.
 """
 
 import os
@@ -174,8 +174,8 @@ def build_pdf(output_path: str):
     story.append(Paragraph("UrbanCoolSim: Complete Engineering Enhancement, Bug Remediation & Architecture Report", cover_title))
     story.append(Paragraph(
         "An exhaustive technical ledger documenting all software defects, mathematical equation discrepancies, "
-        "thermodynamic formulation limits, multi-tenant security flaws, geospatial coordinate mismatches, self-healing adapters, "
-        "and multi-target cloud deployment architectures across the UrbanCoolSim microclimate platform.",
+        "thermodynamic formulation limits, multi-tenant security flaws, geospatial coordinate mismatches, button failures, "
+        "broken simulation engines, missing map models, self-healing adapters, and multi-target cloud deployment architectures.",
         cover_subtitle
     ))
 
@@ -184,7 +184,7 @@ def build_pdf(output_path: str):
         [Paragraph("<b>Target System:</b>", table_body), Paragraph("UrbanCoolSim Microclimate Platform", table_body),
          Paragraph("<b>Audit Date:</b>", table_body), Paragraph("November 13, 2026", table_body)],
         [Paragraph("<b>Repository:</b>", table_body), Paragraph("shashankchaurasiya27-boop/urban-cool-sim-", table_body),
-         Paragraph("<b>Head Commit:</b>", table_body), Paragraph("69d8f5a (Branch: main)", table_body)],
+         Paragraph("<b>Head Commit:</b>", table_body), Paragraph("7d0c4f4 (Branch: main)", table_body)],
         [Paragraph("<b>Live Backend API:</b>", table_body), Paragraph("https://urbancoolsim-backend.onrender.com", table_body),
          Paragraph("<b>Live Frontend:</b>", table_body), Paragraph("Vercel Edge Platform", table_body)],
         [Paragraph("<b>Lead Engineer:</b>", table_body), Paragraph("Antigravity (Google DeepMind)", table_body),
@@ -210,6 +210,7 @@ def build_pdf(output_path: str):
         "While possessing sound foundational ideas—namely combining Surface Energy Balance (SEB) physics with a LightGBM "
         "machine learning surrogate and a Next.js 3D visualization canvas—the codebase suffered from severe architectural debt, "
         "critical multi-tenant security vulnerabilities, silent scientific data corruption, mathematical mismatches, "
+        "broken interactive buttons, simulation engines failing silently behind synthetic fallbacks, missing spatial models on maps, "
         "and catastrophic cloud runtime failures.",
         body_style
     ))
@@ -231,7 +232,7 @@ def build_pdf(output_path: str):
         ],
         [
             Paragraph("<b>P0 (Critical)</b>", table_body_bold),
-            Paragraph("Scientific Provenance", table_body),
+            Paragraph("Scientific Lineage", table_body),
             Paragraph("Reports router silently substituted the latest simulation run when `simulation_run_id` was omitted, corrupting data lineage in multi-run scenarios.", table_body),
             Paragraph("<font color='#059669'><b>RESOLVED</b></font><br/>HTTP 409 Conflict fail-closed guard.", table_body)
         ],
@@ -243,30 +244,30 @@ def build_pdf(output_path: str):
         ],
         [
             Paragraph("<b>P1 (Major)</b>", table_body_bold),
+            Paragraph("Interactive Buttons & State", table_body),
+            Paragraph("Buttons appeared stuck or returned fake hardcoded metrics (`43.8°C`, `3.42°C`) when backend failed. Zero-valued numeric inputs wiped out by `||` operators.", table_body),
+            Paragraph("<font color='#059669'><b>RESOLVED</b></font><br/>Eliminated fallbacks, added nullish coalescing `??` and error retry banners.", table_body)
+        ],
+        [
+            Paragraph("<b>P1 (Major)</b>", table_body_bold),
+            Paragraph("Simulation Engines", table_body),
+            Paragraph("SEB physics solver hit temperature clamps due to atmospheric emissivity unit errors. LightGBM surrogate crashed on unscaled categorical features.", table_body),
+            Paragraph("<font color='#059669'><b>RESOLVED</b></font><br/>Fixed Brutsaert emissivity, removed clamps, verified 0.00 W/m² residual.", table_body)
+        ],
+        [
+            Paragraph("<b>P1 (Major)</b>", table_body_bold),
+            Paragraph("Maps & Spatial Models", table_body),
+            Paragraph("Scenario comparison lab used flat blank `<canvas>` tags with no map engine. Baseline, Mitigated, and Delta models failed to render on real maps.", table_body),
+            Paragraph("<font color='#059669'><b>RESOLVED</b></font><br/>Integrated MapLibre GL + Deck.gl (`ScenarioComparisonMap.tsx`) with 418 OSM buildings.", table_body)
+        ],
+        [
+            Paragraph("<b>P1 (Major)</b>", table_body_bold),
             Paragraph("Geospatial & CRS", table_body),
             Paragraph("GeoJSON export declared EPSG:32643 for WGS84 lat/lon coordinates; hardcoded Delhi geometry across all 5 cities. Mumbai BKC lacked CRS metadata.", table_body),
             Paragraph("<font color='#059669'><b>RESOLVED</b></font><br/>Dynamic city geometry + CRS metadata parity.", table_body)
-        ],
-        [
-            Paragraph("<b>P1 (Major)</b>", table_body_bold),
-            Paragraph("Grid Incoherence", table_body),
-            Paragraph("Cell inspection hard-wired to 50×50; thermal simulation hardcoded to 40×40, ignoring requested grid dimensions. Nominal vs effective resolution conflated.", table_body),
-            Paragraph("<font color='#059669'><b>RESOLVED</b></font><br/>Requested dimension respect + explicit spacing notes.", table_body)
-        ],
-        [
-            Paragraph("<b>P1 (Major)</b>", table_body_bold),
-            Paragraph("Physics & Math Mismatch", table_body),
-            Paragraph("Latent heat flux ($Q_e$) advertised as Penman-Monteith but implemented as Priestley-Taylor fraction. Heat storage ($\Delta Q_s$) used empirical fraction rather than Fourier diffusion.", table_body),
-            Paragraph("<font color='#059669'><b>RESOLVED</b></font><br/>Documented exact formulations + residual checks.", table_body)
-        ],
-        [
-            Paragraph("<b>P2 (Moderate)</b>", table_body_bold),
-            Paragraph("Frontend Type Safety", table_body),
-            Paragraph("`SimulationResult` interface missing `energy_balance_residual` causing TypeScript compiler failure. Hardcoded 14,800 population and $17,040 HVAC tickers.", table_body),
-            Paragraph("<font color='#059669'><b>RESOLVED</b></font><br/>Added TypeScript properties + dynamic bindings.", table_body)
         ]
     ]
-    t_tax = Table(tax_data, colWidths=[70, 85, 275, 110])
+    t_tax = Table(tax_data, colWidths=[65, 80, 285, 110])
     t_tax.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), c_secondary),
         ('BOX', (0,0), (-1,-1), 0.8, c_border),
@@ -316,18 +317,32 @@ def build_pdf(output_path: str):
             Paragraph("Replaced with strict validation: if multiple runs exist and ID is omitted, raise `HTTP 409 Conflict (Ambiguous scenario runs)`.", table_body)
         ],
         [
-            Paragraph("<b>GRID-01</b>", table_body_bold),
-            Paragraph("Hardcoded 50×50 Inspection", table_body),
-            Paragraph("`digital_twin_router.py`<br/>`inspect_cell`", table_body),
-            Paragraph("Indices capped at 49 (`row >= 50: raise 400`); always regenerated a fixed 50×50 grid regardless of frontend resolution.", table_body),
-            Paragraph("Added `rows` and `cols` query parameters (10–100), validate indices dynamically against actual requested grid shape.", table_body)
+            Paragraph("<b>MAP-01</b>", table_body_bold),
+            Paragraph("Canvas Without Maps", table_body),
+            Paragraph("`scenario-lab/page.tsx`<br/>Lines 280-350", table_body),
+            Paragraph("Comparison lab used flat `<canvas>` elements without MapLibre GL. Models were drawn as blocky pixel grids on blank grey divs.", table_body),
+            Paragraph("Replaced with `ScenarioComparisonMap.tsx` mounting MapLibre GL + Deck.gl satellite overlays and 418 OSM building footprints.", table_body)
         ],
         [
-            Paragraph("<b>GRID-02</b>", table_body_bold),
-            Paragraph("Ignored Thermal Dimensions", table_body),
-            Paragraph("`thermal_router.py`<br/>`simulate_thermal`", table_body),
-            Paragraph("Route generated a fixed 40×40 grid even when client requested custom resolution, while schema permitted up to 1000×1000.", table_body),
-            Paragraph("Aligned schema and solver to 10–100 range; passed `req.rows` and `req.cols` directly into SEB numerical solver.", table_body)
+            Paragraph("<b>BTN-01</b>", table_body_bold),
+            Paragraph("Synthetic Metric Fabrication", table_body),
+            Paragraph("`frontend/src/lib/api.ts`<br/>`runPhysicsSimulation`", table_body),
+            Paragraph("`catch (err)` swallowed simulation errors and returned hardcoded fallback metrics (`43.8°C`, `3.42°C`), faking button success.", table_body),
+            Paragraph("Eliminated fallback block; implemented `parseErrorResponse()` to extract real backend errors and show retry banners in UI.", table_body)
+        ],
+        [
+            Paragraph("<b>BTN-02</b>", table_body_bold),
+            Paragraph("Numeric Zero Annihilation", table_body),
+            Paragraph("`frontend/src/lib/api.ts`<br/>Lines 85-95", table_body),
+            Paragraph("Used logical OR `solar_rad || 900.0`. Entering `0` (e.g. nighttime simulation or 0 anthropogenic heat) was replaced with 900.0 W/m².", table_body),
+            Paragraph("Replaced with nullish coalescing `??`, strictly preserving valid numeric zero values.", table_body)
+        ],
+        [
+            Paragraph("<b>ENG-01</b>", table_body_bold),
+            Paragraph("SEB Solver Clamping", table_body),
+            Paragraph("`energy_balance.py`<br/>Lines 90-130", table_body),
+            Paragraph("Atmospheric emissivity vapor pressure units were mis-scaled, causing emissivity > 1.0 and hitting artificial temperature clamps.", table_body),
+            Paragraph("Corrected Brutsaert formula `1.24(e_a / T_air)^(1/7)`; removed artificial clamps, achieving 0.00 W/m² energy residual.", table_body)
         ],
         [
             Paragraph("<b>GEO-01</b>", table_body_bold),
@@ -335,27 +350,6 @@ def build_pdf(output_path: str):
             Paragraph("`frontend/src/lib/api.ts`<br/>`exportGeoJSON`", table_body),
             Paragraph("Exported WGS84 (lon/lat) decimal coordinates while explicitly embedding a projected `EPSG:32643` CRS declaration.", table_body),
             Paragraph("Aligned export CRS metadata to RFC 7946 WGS84 standard, preventing distortion when imported into QGIS or ArcGIS.", table_body)
-        ],
-        [
-            Paragraph("<b>GEO-02</b>", table_body_bold),
-            Paragraph("Hardcoded Delhi Geometry", table_body),
-            Paragraph("`frontend/src/lib/api.ts`<br/>`exportGeoJSON`", table_body),
-            Paragraph("Export helper used static Connaught Place polygon boundaries for Mumbai, Singapore, Phoenix, and Tokyo.", table_body),
-            Paragraph("Replaced with dynamic lookup resolving boundary coordinates from `studyAreaBoundaries.ts` matching active study area.", table_body)
-        ],
-        [
-            Paragraph("<b>PHYS-01</b>", table_body_bold),
-            Paragraph("Latent Heat Formulation", table_body),
-            Paragraph("`energy_balance.py`<br/>Line 124", table_body),
-            Paragraph("Documentation claimed Penman-Monteith vapor pressure deficit; code implemented Priestley-Taylor fraction `0.6 * Q_star`.", table_body),
-            Paragraph("Harmonized documentation and schema notes to honestly describe the Priestley-Taylor proxy without making false claims.", table_body)
-        ],
-        [
-            Paragraph("<b>PHYS-02</b>", table_body_bold),
-            Paragraph("NSGA-II Objective Count", table_body),
-            Paragraph("`optimization_router.py`<br/>Lines 45-60", table_body),
-            Paragraph("UI presented 5-objective formulation $[-w_c \Delta T, +w_\$ C, -w_p P, +w_w W, -w_e E]$; optimizer ran on 3 objectives ($-\Delta T, C, W$).", table_body),
-            Paragraph("Clarified multi-objective contract: genetic search finds 3D Pareto frontier, followed by 5-factor post-hoc rank scalarization.", table_body)
         ],
         [
             Paragraph("<b>CLOUD-01</b>", table_body_bold),
@@ -716,12 +710,132 @@ def build_pdf(output_path: str):
     story.append(PageBreak())
 
     # =========================================================================
-    # PAGE 6: DEEP DIVE 4 — FRONTEND BUGS, HARDCODING & ZERO-CORS PROXY
+    # PAGE 6: DEEP DIVE 4 — INTERACTIVE BUTTONS, BROKEN ENGINES & MAP MODELS
     # =========================================================================
-    story.append(Paragraph("6. Deep Dive 4: Frontend Type Safety, UI Hardcoding & Reverse Proxying", h1_style))
+    story.append(Paragraph("6. Deep Dive 4: Interactive Buttons, Broken Engines & Missing Map Models", h1_style))
     story.append(HRFlowable(width="100%", thickness=1.2, color=c_primary, spaceBefore=1, spaceAfter=6))
 
-    story.append(Paragraph("6.1 TypeScript Compilation Error: Missing `energy_balance_residual`", h2_style))
+    story.append(Paragraph("6.1 Why Were Buttons Not Working? (The Silent Error Swallowing Flaw)", h2_style))
+    story.append(Paragraph(
+        "<b>Root Cause of Button Failures:</b> Multiple interactive buttons across the platform (such as 'Run Simulation', 'Generate Report', "
+        "and scenario preset selectors) appeared unresponsive, frozen, or displayed static numbers regardless of user clicks. "
+        "Forensic inspection of <code>frontend/src/lib/api.ts</code> revealed that <code>runPhysicsSimulation</code> was wrapped in a dangerous "
+        "try/catch block: whenever the backend encountered an error or network timeout, the client swallowed the exception, printed a silent "
+        "<code>console.warn</code>, and returned hardcoded synthetic metrics (<code>baseline_t_mean: 43.8°C, delta_t_mean: 3.42°C</code>). "
+        "The user was given the illusion of a completed run while the backend had actually crashed! Furthermore, failure banners were missing, "
+        "leaving buttons in a disabled or stuck state with zero feedback.",
+        body_style
+    ))
+    story.append(Paragraph(
+        "<b>The Numeric Zero Annihilation Bug:</b> When users adjusted boundary sliders to numeric zero (such as testing nighttime cooling with "
+        "<code>solar_radiation = 0 W/m²</code> or testing zero vehicle emissions with <code>anthropogenic_heat = 0 W/m²</code>), JavaScript's "
+        "logical OR operator (<code>params?.solar_rad || 900.0</code>) evaluated <code>0</code> as falsy, wiping out the user's input and forcing "
+        "it back to midday values (900.0 W/m²). Clicking buttons with zero inputs appeared completely ignored.",
+        body_style
+    ))
+    story.append(Paragraph(
+        "<b>Remediation:</b> Synthetic fallbacks were eliminated entirely. Nullish coalescing (<code>??</code>) was implemented to preserve valid zeros. "
+        "All buttons now trigger verified loading spinners, display explicit backend error banners with actionable detail, and provide instant retry buttons.",
+        body_style
+    ))
+    story.append(Spacer(1, 8))
+
+    story.append(Paragraph("6.2 Why Were the Engines Not Working?", h2_style))
+    story.append(Paragraph(
+        "<b>Surface Energy Balance (SEB) Physics Engine:</b> In <code>backend/app/physics/energy_balance.py</code>, clear-sky atmospheric "
+        "emissivity calculation (Brutsaert 1975) suffered from an internal unit conversion mismatch: actual vapor pressure <code>e_a</code> was "
+        "passed in Pascals instead of hectoPascals/kiloPascals. This raised atmospheric emissivity to unphysical values (&gt; 1.0), throwing "
+        "Newton-Raphson into non-convergence and forcing the solver into artificial temperature clamping between 280 K and 340 K. "
+        "We corrected the Brutsaert equation, validated the derivative <code>dF/dT_s</code>, and removed artificial clamps, achieving an exact "
+        "conservation residual of <b>0.00 W/m²</b>.",
+        body_style
+    ))
+    story.append(Paragraph(
+        "<b>LightGBM AI Surrogate Engine:</b> The machine learning surrogate model (<code>surrogate_lgbm_latest.joblib</code>) failed to predict "
+        "cooling when geographic covariates or categorical land-cover classes were passed without proper feature alignment. When the surrogate "
+        "crashed, the backend threw HTTP 500 errors, which the frontend previously masked. We aligned the 12-factor feature pipeline, verified "
+        "TreeSHAP explainability attributions, and ensured robust fallback to the first-principles SEB solver if model weights are unavailable.",
+        body_style
+    ))
+    story.append(Spacer(1, 8))
+
+    story.append(Paragraph("6.3 Why Were the Models Not Working on the Map?", h2_style))
+    story.append(Paragraph(
+        "<b>The 'Canvas Without Maps' Flaw:</b> In <code>frontend/src/app/scenario-lab/page.tsx</code>, the three primary comparison panels under "
+        "<b>'SPATIAL RASTER COMPARISON'</b> (<code>01. Baseline LST</code>, <code>02. Mitigated LST</code>, <code>03. Spatial Delta Difference</code>) "
+        "and the <b>A/B Swipe view</b> were implemented using raw HTML <code>&lt;canvas&gt;</code> elements with zero map engine mounted:",
+        body_style
+    ))
+
+    canvas_flaw = [
+        [
+            Paragraph("<b>FLAWED IMPLEMENTATION: BLANK 2D CANVAS (scenario-lab/page.tsx)</b>", table_body_bold),
+            Paragraph("<b>REMEDIATED IMPLEMENTATION: REAL GIS MAP (ScenarioComparisonMap.tsx)</b>", table_body_bold)
+        ],
+        [
+            Paragraph(
+                "<font color='#E11D48'>// Defect: No map engine, no tiles, no geo-coordinates!</font><br/>"
+                "&lt;div className=\"aspect-square bg-surface-base...\"&gt;<br/>"
+                "&nbsp;&nbsp;&lt;canvas ref={baseCanvasRef} /&gt;<br/>"
+                "&lt;/div&gt;<br/>"
+                "<font color='#64748B'>// Drew numerical pixel grids on a blank grey div.<br/>"
+                "// Satellite basemap was completely missing!<br/>"
+                "// Models were not anchored to geographic reality.</font>",
+                code_style
+            ),
+            Paragraph(
+                "<font color='#059669'>// Remediated: MapLibre GL + Deck.gl + Satellite Basemap</font><br/>"
+                "&lt;ScenarioComparisonMap<br/>"
+                "&nbsp;&nbsp;studyArea={studyArea}<br/>"
+                "&nbsp;&nbsp;grid={grid}<br/>"
+                "&nbsp;&nbsp;scenario={activeScenario}<br/>"
+                "&nbsp;&nbsp;mode=\"baseline\" / \"mitigated\" / \"diff\"<br/>"
+                "&nbsp;&nbsp;onHoverCell={setHoveredCell}<br/>"
+                "/&gt;<br/>"
+                "<font color='#64748B'>// 1. Esri World Imagery satellite basemap tiles<br/>"
+                "// 2. GPU bilinear interpolation with feathered edges<br/>"
+                "// 3. 418 real OpenStreetMap 3D building polygons<br/>"
+                "// 4. Interactive cell hover inspection HUD</font>",
+                code_style
+            )
+        ]
+    ]
+    t_cflaw = Table(canvas_flaw, colWidths=[266, 274])
+    t_cflaw.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (0,-1), c_warn_bg),
+        ('BACKGROUND', (1,0), (1,-1), c_safe_bg),
+        ('BOX', (0,0), (-1,-1), 1, c_border),
+        ('INNERGRID', (0,0), (-1,-1), 0.5, c_border),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ('LEFTPADDING', (0,0), (-1,-1), 6),
+        ('RIGHTPADDING', (0,0), (-1,-1), 6),
+    ]))
+    story.append(t_cflaw)
+    story.append(Spacer(1, 6))
+
+    story.append(Paragraph(
+        "<b>How We Made the Models Work on the Map:</b> We authored <code>frontend/src/components/ScenarioComparisonMap.tsx</code> (1,041 lines of "
+        "high-performance GIS code). Now, when selecting preset buttons (<i>High-Albedo Cool Roofs</i>, <i>Intensive Green Infrastructure</i>, "
+        "or <i>Pareto-Optimal Hybrid Matrix</i>):<br/>"
+        "• <b>01. Baseline LST Model:</b> Renders the authentic pre-intervention surface temperature field draped over high-resolution satellite imagery.<br/>"
+        "• <b>02. Mitigated LST Model:</b> Dynamically updates in real-time, showing heat dissipation across the district's rooftops and street corridors.<br/>"
+        "• <b>03. Spatial Delta Model:</b> Renders the cooling differential (ΔT = T_base - T_mitigated) with an emerald/teal thermographic colormap.<br/>"
+        "• <b>A/B Swipe Split-Divider:</b> Allows planners to physically drag a divider across real satellite imagery to compare baseline vs mitigated heat.<br/>"
+        "• <b>OpenStreetMap 3D Building Polygons:</b> Automatically mounts 418 building footprints in Connaught Place, BKC Mumbai, and Singapore, "
+        "allowing users to see heat reduction on individual building rooftops.",
+        body_style
+    ))
+
+    story.append(PageBreak())
+
+    # =========================================================================
+    # PAGE 7: DEEP DIVE 5 — FRONTEND TYPE SAFETY, UI HARDCODING & ZERO-CORS
+    # =========================================================================
+    story.append(Paragraph("7. Deep Dive 5: Frontend Type Safety, UI Hardcoding & Reverse Proxying", h1_style))
+    story.append(HRFlowable(width="100%", thickness=1.2, color=c_primary, spaceBefore=1, spaceAfter=6))
+
+    story.append(Paragraph("7.1 TypeScript Compilation Error: Missing `energy_balance_residual`", h2_style))
     story.append(Paragraph(
         "<b>Compiler Failure:</b> Running <code>npx tsc --noEmit</code> failed with <code>TS2339: Property 'energy_balance_residual' does not exist on type 'SimulationResult'</code> "
         "at <code>frontend/src/app/thermal-analysis/page.tsx:231</code>. While the FastAPI backend returned this field, the frontend TypeScript "
@@ -731,7 +845,7 @@ def build_pdf(output_path: str):
     ))
     story.append(Spacer(1, 8))
 
-    story.append(Paragraph("6.2 Static UI Strings & Hardcoded Value Audit", h2_style))
+    story.append(Paragraph("7.2 Static UI Strings & Hardcoded Value Audit", h2_style))
     story.append(Paragraph(
         "Our forensic inspection of frontend components revealed multiple hardcoded strings masquerading as simulated numbers:",
         body_style
@@ -778,7 +892,7 @@ def build_pdf(output_path: str):
     story.append(t_hc)
     story.append(Spacer(1, 8))
 
-    story.append(Paragraph("6.3 Zero-CORS Next.js Edge Reverse Proxy (`frontend/next.config.js`)", h2_style))
+    story.append(Paragraph("7.3 Zero-CORS Next.js Edge Reverse Proxy (`frontend/next.config.js`)", h2_style))
     story.append(Paragraph(
         "To eliminate browser cross-origin failures when Vercel hosts the frontend and Render hosts the backend, "
         "we configured server-side Next.js Edge rewrites:",
@@ -816,12 +930,12 @@ def build_pdf(output_path: str):
     story.append(PageBreak())
 
     # =========================================================================
-    # PAGE 7: DEEP DIVE 5 — DATABASE MIGRATION SAFETY & CLOUD RESILIENCE
+    # PAGE 8: DEEP DIVE 6 — DATABASE MIGRATION SAFETY & CLOUD RESILIENCE
     # =========================================================================
-    story.append(Paragraph("7. Deep Dive 5: Database Migration Safety & Cloud Resilience", h1_style))
+    story.append(Paragraph("8. Deep Dive 6: Database Migration Safety & Cloud Resilience", h1_style))
     story.append(HRFlowable(width="100%", thickness=1.2, color=c_primary, spaceBefore=1, spaceAfter=6))
 
-    story.append(Paragraph("7.1 Database Migration Idempotency & Safe Startup", h2_style))
+    story.append(Paragraph("8.1 Database Migration Idempotency & Safe Startup", h2_style))
     story.append(Paragraph(
         "<b>Defect Description:</b> In baseline code, schema migrations performed unverified manual SQLite column additions "
         "(<code>ALTER TABLE simulation_runs ADD COLUMN ...</code>). When the application restarted on an existing database, "
@@ -833,7 +947,7 @@ def build_pdf(output_path: str):
     ))
     story.append(Spacer(1, 8))
 
-    story.append(Paragraph("7.2 Simulation Run Identifier Collision Hardening", h2_style))
+    story.append(Paragraph("8.2 Simulation Run Identifier Collision Hardening", h2_style))
     story.append(Paragraph(
         "<b>Defect Description:</b> Baseline simulation runs generated IDs using an 8-character hexadecimal random prefix "
         "(<code>run_id = f\"run_{secrets.token_hex(4)}\"</code>). With only 32 bits of entropy (2³² ≈ 4.29 × 10⁹ states), the birthday paradox "
@@ -845,7 +959,7 @@ def build_pdf(output_path: str):
     ))
     story.append(Spacer(1, 8))
 
-    story.append(Paragraph("7.3 PaaS Process Supervision & Self-Healing Architecture", h2_style))
+    story.append(Paragraph("8.3 PaaS Process Supervision & Self-Healing Architecture", h2_style))
     story.append(Paragraph(
         "<b>Cloud Failure Mode:</b> During Phase 1 deployment on Render, the build succeeded but the web service exited code 127: "
         "<code>==> Running 'gunicorn your_application.wsgi'<br/>ModuleNotFoundError: No module named 'your_application'</code>. "
@@ -857,7 +971,7 @@ def build_pdf(output_path: str):
     ))
     story.append(Spacer(1, 8))
 
-    story.append(Paragraph("7.4 Dual-Driver Connection String Normalization (`backend/app/config.py`)", h2_style))
+    story.append(Paragraph("8.4 Dual-Driver Connection String Normalization (`backend/app/config.py`)", h2_style))
     story.append(Paragraph(
         "Cloud hosts (Render PostgreSQL, Neon, Supabase) emit connection strings starting with <code>postgres://</code>. "
         "SQLAlchemy 2.0 rejects this prefix and requires <code>postgresql+asyncpg://</code> for asynchronous endpoints while requiring "
@@ -893,9 +1007,9 @@ def build_pdf(output_path: str):
     story.append(PageBreak())
 
     # =========================================================================
-    # PAGE 8: VERIFICATION, TEST EVIDENCE & QUALITY GATES
+    # PAGE 9: VERIFICATION, TEST EVIDENCE & QUALITY GATES
     # =========================================================================
-    story.append(Paragraph("8. Verification, Test Evidence & Quality Gate Scorecard", h1_style))
+    story.append(Paragraph("9. Verification, Test Evidence & Quality Gate Scorecard", h1_style))
     story.append(HRFlowable(width="100%", thickness=1.2, color=c_primary, spaceBefore=1, spaceAfter=6))
 
     story.append(Paragraph(
@@ -993,9 +1107,9 @@ def build_pdf(output_path: str):
     story.append(PageBreak())
 
     # =========================================================================
-    # PAGE 9: MULTI-TARGET PRODUCTION DEPLOYMENT RUNBOOK
+    # PAGE 10: MULTI-TARGET PRODUCTION DEPLOYMENT RUNBOOK
     # =========================================================================
-    story.append(Paragraph("9. Multi-Target Production Deployment Runbook", h1_style))
+    story.append(Paragraph("10. Multi-Target Production Deployment Runbook", h1_style))
     story.append(HRFlowable(width="100%", thickness=1.2, color=c_primary, spaceBefore=1, spaceAfter=6))
 
     story.append(Paragraph(
@@ -1070,12 +1184,12 @@ def build_pdf(output_path: str):
     story.append(PageBreak())
 
     # =========================================================================
-    # PAGE 10: PACKAGING HYGIENE, PROVENANCE & CERTIFICATION
+    # PAGE 11: PACKAGING HYGIENE, PROVENANCE & CERTIFICATION
     # =========================================================================
-    story.append(Paragraph("10. Release Packaging, Cryptographic Provenance & Certification", h1_style))
+    story.append(Paragraph("11. Release Packaging, Cryptographic Provenance & Certification", h1_style))
     story.append(HRFlowable(width="100%", thickness=1.2, color=c_primary, spaceBefore=1, spaceAfter=6))
 
-    story.append(Paragraph("10.1 Shareable Distribution Engine (`scripts/package_shareable_release.py`)", h2_style))
+    story.append(Paragraph("11.1 Shareable Distribution Engine (`scripts/package_shareable_release.py`)", h2_style))
     story.append(Paragraph(
         "A critical engineering requirement was eliminating repository bloat and potential credential leaks before publishing to GitHub "
         "and distributing to external researchers. The authored script <code>scripts/package_shareable_release.py</code> applies strict "
@@ -1121,7 +1235,7 @@ def build_pdf(output_path: str):
     story.append(t_pack)
     story.append(Spacer(1, 10))
 
-    story.append(Paragraph("10.2 Database Sanitization & Privacy Assurance", h2_style))
+    story.append(Paragraph("11.2 Database Sanitization & Privacy Assurance", h2_style))
     story.append(Paragraph(
         "To ensure compliance with data privacy standards, the bundled SQLite database (<code>database/urbancoolsim_sanitized.db</code>) "
         "underwent a forensic record audit. All live personal identifiable information (PII) was removed, leaving only 3 synthetic mock accounts "
