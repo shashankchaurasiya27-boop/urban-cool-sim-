@@ -1,4 +1,0 @@
-8196dab56ce85dfe228a71847e45a3bb842edd73c8d9440a4326fc211451f31d  frontend/src/lib/api.ts
-115000c29a1aa379f8ea0cbcfd4e7e5332430b211be198b3077f2c56dd9121ad  frontend/src/app/reports/page.tsx
-8e0c8a2258355c5c4f6952e764c9efb504324ad383eec1c99e745d88df468b7e  backend/app/optimization/pareto_optimizer.py
-856c5a5774bddf28521ec9c40798d5b0a0019cd4ee981c969433f184b266877a  backend/tests/test_c2_grid_contract.py

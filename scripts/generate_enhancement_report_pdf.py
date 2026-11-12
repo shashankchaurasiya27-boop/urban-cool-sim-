@@ -1072,9 +1072,12 @@ def build_pdf(output_path: str):
     story.append(Spacer(1, 10))
 
     # Scorecard Visual
-    if os.path.exists("artifacts/pdf_figures/verification_scorecard.png"):
+    fig_scorecard = "docs/figures/verification_scorecard.png"
+    if not os.path.exists(fig_scorecard):
+        fig_scorecard = "artifacts/pdf_figures/verification_scorecard.png"
+    if os.path.exists(fig_scorecard):
         story.append(KeepTogether([
-            Image("artifacts/pdf_figures/verification_scorecard.png", width=500, height=185),
+            Image(fig_scorecard, width=500, height=185),
             Spacer(1, 3),
             Paragraph("<b>Figure 2:</b> UrbanCoolSim Automated Verification and Quality Gate Scorecard (100% Pass Rate).", ParagraphStyle("Cap", parent=body_style, fontSize=7, textColor=c_muted, alignment=1)),
             Spacer(1, 6)
@@ -1173,9 +1176,12 @@ def build_pdf(output_path: str):
     story.append(Spacer(1, 10))
 
     # Architecture Figure Inset
-    if os.path.exists("artifacts/pdf_figures/deployment_architecture.png"):
+    fig_arch = "docs/figures/deployment_architecture.png"
+    if not os.path.exists(fig_arch):
+        fig_arch = "artifacts/pdf_figures/deployment_architecture.png"
+    if os.path.exists(fig_arch):
         story.append(KeepTogether([
-            Image("artifacts/pdf_figures/deployment_architecture.png", width=520, height=230),
+            Image(fig_arch, width=520, height=230),
             Spacer(1, 3),
             Paragraph("<b>Figure 1:</b> UrbanCoolSim Multi-Target Cloud Infrastructure Topology.", ParagraphStyle("Cap3", parent=body_style, fontSize=7, textColor=c_muted, alignment=1)),
             Spacer(1, 4)
